@@ -15,6 +15,7 @@ const (
 	IdentifierType Type = "Identifier"
 	IntegerType    Type = "Integer"
 	StringType     Type = "String"
+	StarType       Type = "Star"
 	WhitespaceType Type = "Whitespace"
 )
 
@@ -110,6 +111,11 @@ func (l *tokenizer) initial() (*Token, lexerFn) {
 		return &Token{
 			Type: EqualType,
 			Raw:  "=",
+		}, nil
+	} else if r == '*' {
+		return &Token{
+			Type: StarType,
+			Raw:  "*",
 		}, nil
 	} else {
 		return &Token{

@@ -7,12 +7,12 @@ import (
 )
 
 func NewQueryPlan(q ast.Query) (RowReader, error) {
-	swf, ok := q.(*ast.SFW)
+	sfw, ok := q.(*ast.SFW)
 	if !ok {
 		return nil, fmt.Errorf("expected a select query, but got something else")
 	}
 
-	rel, ok := swf.From.(*ast.Relation)
+	rel, ok := sfw.From.(*ast.Relation)
 	if !ok {
 		return nil, fmt.Errorf("expected a select query, but got something else")
 	}
@@ -21,14 +21,16 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 		return nil, err
 	}
 
-	//assert.NotNil(swf.SelList)
-	//assert.Equal(len(swf.SelList.Attributes), 1)
-	//assert.Equal(swf.SelList.Attributes[0].Name, "col1")
-
-	//assert.NotNil(swf.Condition)
-	//eq, ok := swf.Condition.(*ast.EqualCondition)
-	//assert.True(ok)
-	//assert.Equal(eq.LHS.Name, "col1")
-	//assert.Equal(eq.RHS.Name, "'abcd'")
+	if !sfw.SelList.All {
+		columns := []string{}
+		for _, a := range sfw.SelList.Attributes {
+			columns = append(columns, a.Name)
+		}
+		fmt.Printf("Selecting columns : %+v\n", columns)
+		rowReader, err = NewProjection(rowReader, columns)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return rowReader, nil
 }

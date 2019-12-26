@@ -9,6 +9,7 @@ type SFW struct {
 }
 
 type SelList struct {
+	All        bool
 	Attributes []*Attribute
 }
 

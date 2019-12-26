@@ -76,7 +76,9 @@ func selList(lex lexer.Lexer) (*ast.SelList, error) {
 			return nil, fmt.Errorf("expected column, found nothing")
 		}
 		token := lex.Token()
-		if token.Type != lexer.IdentifierType {
+		if token.Type == lexer.StarType {
+			result.All = true
+		} else if token.Type != lexer.IdentifierType {
 			return nil, fmt.Errorf("expected column name, found %q", token.Raw)
 		}
 		if strings.ToUpper(token.Raw) == "FROM" {
