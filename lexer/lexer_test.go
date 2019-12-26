@@ -16,13 +16,15 @@ func TestNewLexer(t *testing.T) {
 
 func TestLexWhitespace(t *testing.T) {
 	assert := assert.New(t)
-	l := lexer.New(strings.NewReader(" "))
+	l := lexer.New(strings.NewReader(`
+ `))
 
 	l.Next()
 	token := l.Token()
 
 	assert.Equal(lexer.WhitespaceType, token.Type)
-	assert.Equal(" ", token.Raw)
+	assert.Equal(`
+ `, token.Raw)
 
 	l.Next()
 	token = l.Token()
@@ -152,7 +154,7 @@ func TestLexAnotherQuery(t *testing.T) {
 		lexer.Token{Type: lexer.IdentifierType, Raw: "WHERE"},
 		lexer.Token{Type: lexer.IdentifierType, Raw: "State"},
 		lexer.Token{Type: lexer.EqualType, Raw: "="},
-		lexer.Token{Type: lexer.IntegerType, Raw: "12"},
+		lexer.Token{Type: lexer.IntegerType, Raw: "123"},
 		lexer.Token{Type: lexer.EOFType, Raw: ""},
 	}
 

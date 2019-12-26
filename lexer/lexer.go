@@ -87,7 +87,7 @@ func (l *tokenizer) initial() (*Token, lexerFn) {
 			Raw:  fmt.Sprintf("unable to read rune: %+v", err),
 		}, nil
 	}
-	if r == ' ' {
+	if r == ' ' || r == '\n' {
 		l.stream.UnreadRune()
 		return nil, l.whitespace
 	} else if 'a' <= r && r <= 'z' || 'A' <= r && r <= 'Z' {
@@ -187,7 +187,7 @@ func (l *tokenizer) whitespace() (*Token, lexerFn) {
 			return &Token{Type: ErrorType}, nil
 		}
 		switch r {
-		case ' ':
+		case ' ', '\n':
 			raw += string(r)
 		default:
 			l.stream.UnreadRune()

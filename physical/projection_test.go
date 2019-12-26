@@ -7,14 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type mockRowReader struct {
+type MockRowReader struct {
 	columns []string
 	rows    [][]string
 	next    int
 }
 
-func (m *mockRowReader) Columns() []string { return m.columns }
-func (m *mockRowReader) Read() ([]string, error) {
+func (m *MockRowReader) Columns() []string { return m.columns }
+func (m *MockRowReader) Read() ([]string, error) {
 	if m.next >= len(m.rows) {
 		return nil, nil
 	}
@@ -22,11 +22,13 @@ func (m *mockRowReader) Read() ([]string, error) {
 	m.next++
 	return row, nil
 }
-func (m *mockRowReader) Close() {}
+func (m *MockRowReader) Close()                                     {}
+func (m *MockRowReader) PlanDescription() *physical.PlanDescription { return nil }
+func (m *MockRowReader) Children() []physical.RowReader             { return nil }
 
 func TestProjectOneColumn(t *testing.T) {
 	assert := assert.New(t)
-	rowReader := mockRowReader{
+	rowReader := MockRowReader{
 		columns: []string{"col1", "col2", "col3"},
 		rows: [][]string{
 			[]string{"row1-col1", "row1-col2", "row1-col3"},
@@ -48,7 +50,7 @@ func TestProjectOneColumn(t *testing.T) {
 
 func TestProjectTwoColumn(t *testing.T) {
 	assert := assert.New(t)
-	rowReader := mockRowReader{
+	rowReader := MockRowReader{
 		columns: []string{"col1", "col2", "col3"},
 		rows: [][]string{
 			[]string{"row1-col1", "row1-col2", "row1-col3"},

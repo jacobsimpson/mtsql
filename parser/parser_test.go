@@ -93,5 +93,5 @@ func TestParseSelectWhereColumnEqual(t *testing.T) {
 	eq, ok := swf.Condition.(*ast.EqualCondition)
 	assert.True(ok)
 	assert.Equal(eq.LHS.Name, "col1")
-	assert.Equal(eq.RHS.Name, "'abcd'")
+	assert.Equal(eq.RHS.Raw, "'abcd'")
 }
