@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jacobsimpson/csvsql/formatter"
-	"github.com/jacobsimpson/csvsql/lexer"
-	"github.com/jacobsimpson/csvsql/parser"
-	"github.com/jacobsimpson/csvsql/physical"
+	"github.com/jacobsimpson/mtsql/formatter"
+	"github.com/jacobsimpson/mtsql/lexer"
+	"github.com/jacobsimpson/mtsql/parser"
+	"github.com/jacobsimpson/mtsql/physical"
 )
 
 func main() {

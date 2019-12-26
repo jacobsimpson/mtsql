@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/jacobsimpson/csvsql/physical"
+	"github.com/jacobsimpson/mtsql/physical"
 	"golang.org/x/crypto/ssh/terminal"
 )
 

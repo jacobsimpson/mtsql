@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jacobsimpson/csvsql/ast"
-	"github.com/jacobsimpson/csvsql/lexer"
-	"github.com/jacobsimpson/csvsql/parser"
+	"github.com/jacobsimpson/mtsql/ast"
+	"github.com/jacobsimpson/mtsql/lexer"
+	"github.com/jacobsimpson/mtsql/parser"
 	"github.com/stretchr/testify/assert"
 )
 

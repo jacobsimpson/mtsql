@@ -1,12 +1,12 @@
-# csvsql
+# mtsql
 
 Run SQL queries against CSV files.
 
 ## Usage
 
 ```
-csvsql "SELECT * FROM cities"
-csvsql "SELECT City, State FROM cities"
+mtsql "SELECT * FROM cities"
+mtsql "SELECT City, State FROM cities"
 ```
 
 ## Development

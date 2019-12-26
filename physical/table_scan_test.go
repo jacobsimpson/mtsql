@@ -3,7 +3,7 @@ package physical_test
 import (
 	"testing"
 
-	"github.com/jacobsimpson/csvsql/physical"
+	"github.com/jacobsimpson/mtsql/physical"
 	"github.com/stretchr/testify/assert"
 )
 

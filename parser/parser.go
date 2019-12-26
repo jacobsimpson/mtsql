@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jacobsimpson/csvsql/ast"
-	"github.com/jacobsimpson/csvsql/lexer"
+	"github.com/jacobsimpson/mtsql/ast"
+	"github.com/jacobsimpson/mtsql/lexer"
 )
 
 func Parse(lex lexer.Lexer) (ast.Query, error) {

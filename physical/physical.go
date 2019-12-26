@@ -3,7 +3,7 @@ package physical
 import (
 	"fmt"
 
-	"github.com/jacobsimpson/csvsql/ast"
+	"github.com/jacobsimpson/mtsql/ast"
 )
 
 func NewQueryPlan(q ast.Query) (RowReader, error) {

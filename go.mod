@@ -1,4 +1,4 @@
-module github.com/jacobsimpson/csvsql
+module github.com/jacobsimpson/mtsql
 
 go 1.13
 

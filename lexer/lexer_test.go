@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jacobsimpson/csvsql/lexer"
+	"github.com/jacobsimpson/mtsql/lexer"
 	"github.com/stretchr/testify/assert"
 )
 
