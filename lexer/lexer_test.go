@@ -48,6 +48,24 @@ func TestLexLotsOfWhitespace(t *testing.T) {
 	assert.Equal("", token.Raw)
 }
 
+func TestLexIdentifierUnread(t *testing.T) {
+	assert := assert.New(t)
+	l := lexer.New(strings.NewReader("PROFILE SELECT col1 FROM table_name"))
+
+	l.Next()
+	token := l.Token()
+
+	assert.Equal(lexer.IdentifierType, token.Type)
+	assert.Equal("PROFILE", token.Raw)
+
+	l.UnreadToken()
+	token = l.Token()
+
+	assert.Equal(lexer.IdentifierType, token.Type)
+	assert.Equal("PROFILE", token.Raw)
+
+}
+
 func TestLexIdentifier(t *testing.T) {
 	assert := assert.New(t)
 	l := lexer.New(strings.NewReader("SELECT"))

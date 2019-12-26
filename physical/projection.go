@@ -1,14 +1,19 @@
 package physical
 
+import (
+	"fmt"
+	"strings"
+)
+
 type projection struct {
-	rowReader RowReader
-	columns   []int
+	rowReader     RowReader
+	columnIndexes []int
 }
 
 func (t *projection) Columns() []string {
 	c := t.rowReader.Columns()
 	r := []string{}
-	for _, col := range t.columns {
+	for _, col := range t.columnIndexes {
 		r = append(r, c[col])
 	}
 	return r
@@ -20,13 +25,22 @@ func (t *projection) Read() ([]string, error) {
 		return nil, err
 	}
 	r := []string{}
-	for _, col := range t.columns {
+	for _, col := range t.columnIndexes {
 		r = append(r, row[col])
 	}
 	return r, nil
 }
 
 func (t *projection) Close() {}
+
+func (t *projection) PlanDescription() *PlanDescription {
+	return &PlanDescription{
+		Name:        "Projection",
+		Description: fmt.Sprintf("%v", strings.Join(t.Columns(), ", ")),
+	}
+}
+
+func (t *projection) Children() []RowReader { return []RowReader{t.rowReader} }
 
 func NewProjection(rowReader RowReader, columns []string) (RowReader, error) {
 	columnMap := map[string]int{}
@@ -38,7 +52,7 @@ func NewProjection(rowReader RowReader, columns []string) (RowReader, error) {
 		cols = append(cols, columnMap[c])
 	}
 	return &projection{
-		rowReader: rowReader,
-		columns:   cols,
+		rowReader:     rowReader,
+		columnIndexes: cols,
 	}, nil
 }

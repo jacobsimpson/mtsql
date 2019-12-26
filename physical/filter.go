@@ -43,6 +43,15 @@ func (t *filter) Read() ([]string, error) {
 
 func (t *filter) Close() {}
 
+func (t *filter) PlanDescription() *PlanDescription {
+	return &PlanDescription{
+		Name:        "Filter",
+		Description: fmt.Sprintf("%s = %v", t.columnName, t.value.Value),
+	}
+}
+
+func (t *filter) Children() []RowReader { return []RowReader{t.rowReader} }
+
 func NewFilter(rowReader RowReader, columnName string, value *ast.Constant) (RowReader, error) {
 	n := -1
 	for i, c := range rowReader.Columns() {

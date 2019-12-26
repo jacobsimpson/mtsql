@@ -21,7 +21,42 @@ func query(lex lexer.Lexer) (ast.Query, error) {
 	if token.Type == lexer.ErrorType {
 		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
 	}
-	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "SELECT" {
+	if token.Type == lexer.IdentifierType {
+		if strings.ToUpper(token.Raw) == "SELECT" {
+			lex.UnreadToken()
+			return sfw(lex)
+		} else if strings.ToUpper(token.Raw) == "PROFILE" {
+			lex.UnreadToken()
+			return profile(lex)
+		}
+	}
+
+	return nil, fmt.Errorf("expected SELECT, found %q", token.Raw)
+}
+
+func profile(lex lexer.Lexer) (*ast.Profile, error) {
+	if !lex.Next() {
+		return nil, nil
+	}
+	token := lex.Token()
+	if token.Type != lexer.IdentifierType || strings.ToUpper(token.Raw) != "PROFILE" {
+		return nil, fmt.Errorf("expected PROFILE, found %q", token.Raw)
+	}
+	sfw, err := sfw(lex)
+	if err != nil {
+		return nil, err
+	}
+	return &ast.Profile{
+		SFW: sfw,
+	}, nil
+}
+
+func sfw(lex lexer.Lexer) (*ast.SFW, error) {
+	if !lex.Next() {
+		return nil, nil
+	}
+	token := lex.Token()
+	if token.Type != lexer.IdentifierType || strings.ToUpper(token.Raw) != "SELECT" {
 		return nil, fmt.Errorf("expected SELECT, found %q", token.Raw)
 	}
 

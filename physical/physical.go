@@ -7,14 +7,18 @@ import (
 )
 
 func NewQueryPlan(q ast.Query) (RowReader, error) {
-	sfw, ok := q.(*ast.SFW)
-	if !ok {
+	var sfw *ast.SFW
+	if p, ok := q.(*ast.Profile); ok {
+		sfw = p.SFW
+	} else if s, ok := q.(*ast.SFW); ok {
+		sfw = s
+	} else {
 		return nil, fmt.Errorf("expected a select query, but got something else")
 	}
 
 	rel, ok := sfw.From.(*ast.Relation)
 	if !ok {
-		return nil, fmt.Errorf("expected a select query, but got something else")
+		return nil, fmt.Errorf("expected a relation in the FROM clause, but got something else")
 	}
 	rowReader, err := NewTableScan(rel.Name + ".csv")
 	if err != nil {

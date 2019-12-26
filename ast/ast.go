@@ -2,6 +2,10 @@ package ast
 
 type Query interface{}
 
+type Profile struct {
+	SFW *SFW
+}
+
 type SFW struct {
 	SelList   *SelList
 	From      From

@@ -2,6 +2,7 @@ package physical
 
 import (
 	"encoding/csv"
+	"fmt"
 	"os"
 )
 
@@ -20,6 +21,15 @@ func (t *tableScan) Read() ([]string, error) {
 }
 
 func (t *tableScan) Close() {}
+
+func (t *tableScan) PlanDescription() *PlanDescription {
+	return &PlanDescription{
+		Name:        "TableScan",
+		Description: fmt.Sprintf("%s", t.tableName),
+	}
+}
+
+func (t *tableScan) Children() []RowReader { return []RowReader{} }
 
 func NewTableScan(tableName string) (RowReader, error) {
 	f, err := os.Open(tableName)

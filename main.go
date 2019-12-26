@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jacobsimpson/mtsql/ast"
 	"github.com/jacobsimpson/mtsql/formatter"
 	"github.com/jacobsimpson/mtsql/lexer"
 	"github.com/jacobsimpson/mtsql/parser"
@@ -34,7 +35,13 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	f := formatter.NewTableFormatter(qp)
-	f.Print(os.Stdout)
+	if _, ok := q.(*ast.Profile); ok {
+		fmt.Println("Showing the query plan...")
+		f := formatter.NewQueryPlanFormatter(qp)
+		f.Print(os.Stdout)
+	} else {
+		f := formatter.NewTableFormatter(qp)
+		f.Print(os.Stdout)
+	}
 	return nil
 }
