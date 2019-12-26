@@ -102,6 +102,16 @@ func sfw(lex lexer.Lexer) (*ast.SFW, error) {
 	}
 	q.Condition = condition
 
+	if !lex.Next() {
+		return &q, nil
+	}
+	token = lex.Token()
+	if token.Type == lexer.ErrorType {
+		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
+	}
+	if token.Type != lexer.EOFType {
+		return nil, fmt.Errorf("extra stuff left over: %v", token.Raw)
+	}
 	return &q, nil
 }
 
