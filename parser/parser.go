@@ -83,24 +83,17 @@ func sfw(lex lexer.Lexer) (*ast.SFW, error) {
 	}
 	q.From = from
 
-	if !lex.Next() {
-		return &q, nil
-	}
-	token = lex.Token()
-	if token.Type == lexer.ErrorType {
-		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
-	}
-	if token.Type == lexer.EOFType {
-		return &q, nil
-	}
-	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "WHERE" {
-		return nil, fmt.Errorf("expected WHERE, found %q", token.Raw)
-	}
 	condition, err := condition(lex)
 	if err != nil {
 		return nil, err
 	}
 	q.Condition = condition
+
+	orderby, err := orderBy(lex)
+	if err != nil {
+		return nil, err
+	}
+	q.OrderBy = orderby
 
 	if !lex.Next() {
 		return &q, nil
@@ -158,11 +151,25 @@ func from(lex lexer.Lexer) (ast.From, error) {
 }
 
 func condition(lex lexer.Lexer) (ast.Condition, error) {
+	if !lex.Next() {
+		return nil, nil
+	}
+	token := lex.Token()
+	if token.Type == lexer.ErrorType {
+		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
+	}
+	if token.Type == lexer.EOFType {
+		return nil, nil
+	}
+	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "WHERE" {
+		lex.UnreadToken()
+		return nil, nil
+	}
 	result := ast.EqualCondition{}
 	if !lex.Next() {
 		return nil, fmt.Errorf("expected an attribute, found nothing")
 	}
-	token := lex.Token()
+	token = lex.Token()
 	if token.Type != lexer.IdentifierType {
 		return nil, fmt.Errorf("expected attribute name, found %q", token.Raw)
 	}
@@ -200,5 +207,98 @@ func condition(lex lexer.Lexer) (ast.Condition, error) {
 	default:
 		return nil, fmt.Errorf("unexpected token type %s for %q", token.Type, token.Raw)
 	}
+	return &result, nil
+}
+
+func orderBy(lex lexer.Lexer) (*ast.OrderBy, error) {
+	if !lex.Next() {
+		return nil, nil
+	}
+	token := lex.Token()
+	if token.Type == lexer.ErrorType {
+		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
+	}
+	if token.Type == lexer.EOFType {
+		return nil, nil
+	}
+	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "ORDER" {
+		lex.UnreadToken()
+		return nil, nil
+	}
+	if !lex.Next() {
+		return nil, fmt.Errorf("expected BY, found nothing")
+	}
+	token = lex.Token()
+	if token.Type == lexer.ErrorType {
+		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
+	}
+	if token.Type == lexer.EOFType {
+		return nil, fmt.Errorf("expected BY, found nothing")
+	}
+	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "BY" {
+		return nil, fmt.Errorf("expected BY, found %q", token.Raw)
+
+	}
+
+	result := ast.OrderBy{}
+	if !lex.Next() {
+		return nil, fmt.Errorf("expected an attribute, found nothing")
+	}
+	token = lex.Token()
+	if token.Type != lexer.IdentifierType {
+		return nil, fmt.Errorf("expected attribute name, found %q", token.Raw)
+	}
+	oc := ast.OrderCriteria{
+		Attribute: &ast.Attribute{Name: token.Raw},
+		SortOrder: ast.Asc,
+	}
+	if lex.Next() {
+		token = lex.Token()
+		if token.Type == lexer.IdentifierType && strings.ToUpper(token.Raw) == "ASC" {
+			oc.SortOrder = ast.Asc
+		} else if token.Type == lexer.IdentifierType && strings.ToUpper(token.Raw) == "DESC" {
+			oc.SortOrder = ast.Desc
+		} else {
+			lex.UnreadToken()
+		}
+	}
+	result.Criteria = append(result.Criteria, &oc)
+
+	for {
+		if !lex.Next() {
+			break
+		}
+		token = lex.Token()
+		if token.Type == lexer.EOFType {
+			break
+		}
+		if token.Type != lexer.CommaType {
+			return nil, fmt.Errorf("expected ',', found %q", token.Raw)
+		}
+
+		if !lex.Next() {
+			return nil, fmt.Errorf("expected an attribute, found nothing")
+		}
+		token = lex.Token()
+		if token.Type != lexer.IdentifierType {
+			return nil, fmt.Errorf("expected attribute name, found %q", token.Raw)
+		}
+		oc := ast.OrderCriteria{
+			Attribute: &ast.Attribute{Name: token.Raw},
+			SortOrder: ast.Asc,
+		}
+		if lex.Next() {
+			token = lex.Token()
+			if token.Type == lexer.IdentifierType && strings.ToUpper(token.Raw) == "ASC" {
+				oc.SortOrder = ast.Asc
+			} else if token.Type == lexer.IdentifierType && strings.ToUpper(token.Raw) == "DESC" {
+				oc.SortOrder = ast.Desc
+			} else {
+				lex.UnreadToken()
+			}
+		}
+		result.Criteria = append(result.Criteria, &oc)
+	}
+
 	return &result, nil
 }

@@ -72,7 +72,6 @@ func (l *tokenizer) Next() bool {
 	l.previous = l.current
 	l.current = token
 	return true
-
 }
 
 type lexerFn func() (*Token, lexerFn)
@@ -80,9 +79,7 @@ type lexerFn func() (*Token, lexerFn)
 func (l *tokenizer) initial() (*Token, lexerFn) {
 	r, _, err := l.stream.ReadRune()
 	if err == io.EOF {
-		return &Token{
-			Type: EOFType,
-		}, nil
+		return &Token{Type: EOFType}, nil
 	}
 	if err != nil {
 		return &Token{
@@ -103,20 +100,11 @@ func (l *tokenizer) initial() (*Token, lexerFn) {
 		l.stream.UnreadRune()
 		return nil, l.string
 	} else if r == ',' {
-		return &Token{
-			Type: CommaType,
-			Raw:  ",",
-		}, nil
+		return &Token{Type: CommaType, Raw: ","}, nil
 	} else if r == '=' {
-		return &Token{
-			Type: EqualType,
-			Raw:  "=",
-		}, nil
+		return &Token{Type: EqualType, Raw: "="}, nil
 	} else if r == '*' {
-		return &Token{
-			Type: StarType,
-			Raw:  "*",
-		}, nil
+		return &Token{Type: StarType, Raw: "*"}, nil
 	} else {
 		return &Token{
 			Type: ErrorType,

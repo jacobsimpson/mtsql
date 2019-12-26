@@ -10,6 +10,7 @@ type SFW struct {
 	SelList   *SelList
 	From      From
 	Condition Condition
+	OrderBy   *OrderBy
 }
 
 type SelList struct {
@@ -40,6 +41,23 @@ type LikeCondition struct {
 	LHS *Attribute
 	RHS string
 }
+
+type SortOrder string
+
+const (
+	Asc  SortOrder = "ASC"
+	Desc SortOrder = "DESC"
+)
+
+type OrderCriteria struct {
+	Attribute *Attribute
+	SortOrder SortOrder
+}
+
+type OrderBy struct {
+	Criteria []*OrderCriteria
+}
+
 type Type string
 
 const (

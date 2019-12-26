@@ -6,6 +6,18 @@ import (
 	"github.com/jacobsimpson/mtsql/ast"
 )
 
+type SortOrder string
+
+const (
+	Asc  SortOrder = "Asc"
+	Desc SortOrder = "Desc"
+)
+
+type SortScanCriteria struct {
+	Column    string
+	SortOrder SortOrder
+}
+
 func NewQueryPlan(q ast.Query) (RowReader, error) {
 	var sfw *ast.SFW
 	if p, ok := q.(*ast.Profile); ok {
@@ -23,6 +35,21 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 	rowReader, err := NewTableScan(rel.Name + ".csv")
 	if err != nil {
 		return nil, err
+	}
+
+	if sfw.OrderBy != nil {
+		columns := []SortScanCriteria{}
+		for _, c := range sfw.OrderBy.Criteria {
+			sc := SortScanCriteria{Column: c.Attribute.Name, SortOrder: Asc}
+			if c.SortOrder == ast.Desc {
+				sc.SortOrder = Desc
+			}
+			columns = append(columns, sc)
+		}
+		rowReader, err = NewSortScan(rowReader, columns)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if sfw.Condition != nil {
