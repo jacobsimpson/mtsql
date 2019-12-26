@@ -11,6 +11,7 @@ import (
 	"github.com/jacobsimpson/mtsql/lexer"
 	"github.com/jacobsimpson/mtsql/parser"
 	"github.com/jacobsimpson/mtsql/physical"
+	"github.com/jacobsimpson/mtsql/preprocessor"
 )
 
 func main() {
@@ -31,6 +32,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	if err := preprocessor.Validate(q); err != nil {
+		return err
+	}
+
 	qp, err := physical.NewQueryPlan(q)
 	if err != nil {
 		return err
