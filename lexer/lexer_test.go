@@ -166,3 +166,22 @@ func TestLexAnotherQuery(t *testing.T) {
 		assert.Equal(t.Raw, token.Raw)
 	}
 }
+
+func TestLexQualifiedIdentifier(t *testing.T) {
+	assert := assert.New(t)
+	l := lexer.NewFilterWhitespace(strings.NewReader("abc.def"))
+	expected := []lexer.Token{
+		lexer.Token{Type: lexer.IdentifierType, Raw: "abc"},
+		lexer.Token{Type: lexer.PeriodType, Raw: "."},
+		lexer.Token{Type: lexer.IdentifierType, Raw: "def"},
+		lexer.Token{Type: lexer.EOFType, Raw: ""},
+	}
+
+	for _, t := range expected {
+		l.Next()
+		token := l.Token()
+
+		assert.Equal(t.Type, token.Type)
+		assert.Equal(t.Raw, token.Raw)
+	}
+}

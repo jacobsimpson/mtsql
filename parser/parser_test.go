@@ -95,3 +95,46 @@ func TestParseSelectWhereColumnEqual(t *testing.T) {
 	assert.Equal(eq.LHS.Name, "col1")
 	assert.Equal(eq.RHS.Raw, "'abcd'")
 }
+
+func TestParseSelectStar(t *testing.T) {
+	assert := assert.New(t)
+
+	q, err := parser.Parse(lexer.NewFilterWhitespace(strings.NewReader("SELECT * FROM table_name")))
+
+	assert.Nil(err)
+	assert.NotNil(q)
+
+	swf, ok := q.(*ast.SFW)
+	assert.True(ok)
+
+	assert.NotNil(swf.SelList)
+	assert.Equal(len(swf.SelList.Attributes), 1)
+	assert.Equal(swf.SelList.Attributes[0].Name, "*")
+
+	assert.NotNil(swf.From)
+	rel, ok := swf.From.(*ast.Relation)
+	assert.True(ok)
+	assert.Equal(rel.Name, "table_name")
+}
+
+func TestParseSelectTableQualifiedFieldNames(t *testing.T) {
+	assert := assert.New(t)
+
+	q, err := parser.Parse(lexer.NewFilterWhitespace(strings.NewReader("SELECT table_name.id, name FROM table_name")))
+
+	assert.Nil(err)
+	assert.NotNil(q)
+
+	swf, ok := q.(*ast.SFW)
+	assert.True(ok)
+
+	assert.NotNil(swf.SelList)
+	assert.Equal(len(swf.SelList.Attributes), 2)
+	assert.Equal(swf.SelList.Attributes[0], &ast.Attribute{Qualifier: "table_name", Name: "id"})
+	assert.Equal(swf.SelList.Attributes[1], &ast.Attribute{Qualifier: "", Name: "name"})
+
+	assert.NotNil(swf.From)
+	rel, ok := swf.From.(*ast.Relation)
+	assert.True(ok)
+	assert.Equal(rel.Name, "table_name")
+}

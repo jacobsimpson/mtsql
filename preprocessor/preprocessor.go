@@ -27,6 +27,8 @@ func Validate(q ast.Query) error {
 	if err != nil {
 		return fmt.Errorf("table %q could not be located at %q", rel.Name, filename)
 	}
+	defer f.Close()
+
 	reader := csv.NewReader(f)
 	columns, err := reader.Read()
 	if err != nil {
@@ -47,13 +49,24 @@ func Validate(q ast.Query) error {
 		}
 	}
 
-	if !sfw.SelList.All {
-		for _, a := range sfw.SelList.Attributes {
-			if !columnsMap[a.Name] {
-				return fmt.Errorf("no column %q in table %q", a.Name, rel.Name)
-			}
+	for _, a := range sfw.SelList.Attributes {
+		if !columnsMap[a.Name] && a.Name != "*" {
+			return fmt.Errorf("no column %q in table %q", a.Name, rel.Name)
 		}
 	}
+
+	// Expand any '*' references to the appropriate column list.
+	r := []*ast.Attribute{}
+	for _, a := range sfw.SelList.Attributes {
+		if a.Name == "*" {
+			for _, c := range columns {
+				r = append(r, &ast.Attribute{Name: c})
+			}
+			continue
+		}
+		r = append(r, a)
+	}
+	sfw.SelList.Attributes = r
 
 	return nil
 }

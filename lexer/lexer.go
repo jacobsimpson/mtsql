@@ -13,6 +13,7 @@ const (
 	EqualType      Type = "Equal"
 	ErrorType      Type = "Error"
 	IdentifierType Type = "Identifier"
+	PeriodType     Type = "Period"
 	IntegerType    Type = "Integer"
 	StringType     Type = "String"
 	StarType       Type = "Star"
@@ -99,6 +100,8 @@ func (l *tokenizer) initial() (*Token, lexerFn) {
 	} else if '\'' == r {
 		l.stream.UnreadRune()
 		return nil, l.string
+	} else if r == '.' {
+		return &Token{Type: PeriodType, Raw: "."}, nil
 	} else if r == ',' {
 		return &Token{Type: CommaType, Raw: ","}, nil
 	} else if r == '=' {

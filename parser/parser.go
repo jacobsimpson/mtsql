@@ -101,30 +101,61 @@ func sfw(lex lexer.Lexer) (*ast.SFW, error) {
 func selList(lex lexer.Lexer) (*ast.SelList, error) {
 	result := ast.SelList{}
 	for {
-		if !lex.Next() {
-			return nil, fmt.Errorf("expected column, found nothing")
+		attribute, err := attribute(lex)
+		if err != nil {
+			return nil, err
 		}
-		token := lex.Token()
-		if token.Type == lexer.StarType {
-			result.All = true
-		} else if token.Type != lexer.IdentifierType {
-			return nil, fmt.Errorf("expected column name, found %q", token.Raw)
-		}
-		if strings.ToUpper(token.Raw) == "FROM" {
-			lex.UnreadToken()
+		if attribute == nil {
 			return &result, nil
 		}
-		result.Attributes = append(result.Attributes, &ast.Attribute{Name: token.Raw})
+		result.Attributes = append(result.Attributes, attribute)
 
 		if !lex.Next() {
 			return nil, fmt.Errorf("unexpected end of query, no FROM clause specified")
 		}
-		token = lex.Token()
+		token := lex.Token()
 		if token.Type != lexer.CommaType {
 			lex.UnreadToken()
 			return &result, nil
 		}
 	}
+}
+
+func attribute(lex lexer.Lexer) (*ast.Attribute, error) {
+	if !lex.Next() {
+		return nil, fmt.Errorf("expected column, found nothing")
+	}
+	token := lex.Token()
+	if token.Type == lexer.StarType {
+		return &ast.Attribute{Name: token.Raw}, nil
+	} else if token.Type != lexer.IdentifierType {
+		return nil, fmt.Errorf("expected column name, found %q", token.Raw)
+	}
+	if strings.ToUpper(token.Raw) == "FROM" {
+		lex.UnreadToken()
+		return nil, nil
+	}
+
+	attribute := &ast.Attribute{Name: token.Raw}
+	if !lex.Next() {
+		return attribute, nil
+	}
+	token = lex.Token()
+	if token.Type != lexer.PeriodType {
+		lex.UnreadToken()
+		return attribute, nil
+	}
+	attribute.Qualifier = attribute.Name
+
+	if !lex.Next() {
+		return nil, fmt.Errorf("partially specified column '%s.'", attribute.Qualifier)
+	}
+	token = lex.Token()
+	if token.Type != lexer.IdentifierType {
+		return nil, fmt.Errorf("expected identifier as part of qualified column name '%s.', found %q", attribute.Qualifier, token.Raw)
+	}
+	attribute.Name = token.Raw
+	return attribute, nil
 }
 
 func from(lex lexer.Lexer) (ast.From, error) {

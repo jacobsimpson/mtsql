@@ -63,15 +63,13 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 		}
 	}
 
-	if !sfw.SelList.All {
-		columns := []string{}
-		for _, a := range sfw.SelList.Attributes {
-			columns = append(columns, a.Name)
-		}
-		rowReader, err = NewProjection(rowReader, columns)
-		if err != nil {
-			return nil, err
-		}
+	columns := []string{}
+	for _, a := range sfw.SelList.Attributes {
+		columns = append(columns, a.Name)
+	}
+	rowReader, err = NewProjection(rowReader, columns)
+	if err != nil {
+		return nil, err
 	}
 
 	return rowReader, nil

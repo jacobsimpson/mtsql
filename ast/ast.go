@@ -14,12 +14,13 @@ type SFW struct {
 }
 
 type SelList struct {
-	All        bool
 	Attributes []*Attribute
 }
 
 type Attribute struct {
-	Name string
+	Qualifier string
+	Name      string
+	Alias     string
 }
 
 type From interface{}
