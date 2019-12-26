@@ -120,3 +120,29 @@ func TestLexQuery(t *testing.T) {
 		assert.Equal(t.Raw, token.Raw)
 	}
 }
+
+func TestLexAnotherQuery(t *testing.T) {
+	assert := assert.New(t)
+	l := lexer.NewFilterWhitespace(strings.NewReader("SELECT State, City FROM cities WHERE State = 123"))
+	expected := []lexer.Token{
+		lexer.Token{Type: lexer.IdentifierType, Raw: "SELECT"},
+		lexer.Token{Type: lexer.IdentifierType, Raw: "State"},
+		lexer.Token{Type: lexer.CommaType, Raw: ","},
+		lexer.Token{Type: lexer.IdentifierType, Raw: "City"},
+		lexer.Token{Type: lexer.IdentifierType, Raw: "FROM"},
+		lexer.Token{Type: lexer.IdentifierType, Raw: "cities"},
+		lexer.Token{Type: lexer.IdentifierType, Raw: "WHERE"},
+		lexer.Token{Type: lexer.IdentifierType, Raw: "State"},
+		lexer.Token{Type: lexer.EqualType, Raw: "="},
+		lexer.Token{Type: lexer.IntegerType, Raw: "12"},
+		lexer.Token{Type: lexer.EOFType, Raw: ""},
+	}
+
+	for _, t := range expected {
+		l.Next()
+		token := l.Token()
+
+		assert.Equal(t.Type, token.Type)
+		assert.Equal(t.Raw, token.Raw)
+	}
+}

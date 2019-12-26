@@ -26,7 +26,7 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 		if !ok {
 			return nil, fmt.Errorf("only = conditions are currently supported")
 		}
-		rowReader, err = NewFilter(rowReader, eq.LHS.Name, eq.RHS.Name[1:len(eq.RHS.Name)-1])
+		rowReader, err = NewFilter(rowReader, eq.LHS.Name, eq.RHS)
 		if err != nil {
 			return nil, err
 		}

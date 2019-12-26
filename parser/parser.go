@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jacobsimpson/mtsql/ast"
@@ -134,9 +135,25 @@ func condition(lex lexer.Lexer) (ast.Condition, error) {
 		return nil, fmt.Errorf("expected an attribute, found nothing")
 	}
 	token = lex.Token()
-	if token.Type != lexer.StringType {
-		return nil, fmt.Errorf("expected attribute name, found %q", token.Raw)
+	switch token.Type {
+	case lexer.StringType:
+		result.RHS = &ast.Constant{
+			Type:  ast.StringType,
+			Value: token.Raw[1 : len(token.Raw)-1],
+			Raw:   token.Raw,
+		}
+	case lexer.IntegerType:
+		i, err := strconv.Atoi(token.Raw)
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert constant %q to integer", token.Raw)
+		}
+		result.RHS = &ast.Constant{
+			Type:  ast.IntegerType,
+			Value: i,
+			Raw:   token.Raw,
+		}
+	default:
+		return nil, fmt.Errorf("unexpected token type %s for %q", token.Type, token.Raw)
 	}
-	result.RHS = &ast.Attribute{Name: token.Raw}
 	return &result, nil
 }

@@ -154,7 +154,7 @@ func (l *tokenizer) number() (*Token, lexerFn) {
 		r, _, err := l.stream.ReadRune()
 		if err == io.EOF {
 			l.stream.UnreadRune()
-			return &Token{Type: IdentifierType, Raw: raw}, nil
+			return &Token{Type: IntegerType, Raw: raw}, nil
 		}
 		if err != nil {
 			return &Token{Type: ErrorType}, nil

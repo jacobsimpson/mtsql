@@ -30,9 +30,21 @@ type AndCondition struct {
 type InCondition struct{}
 type EqualCondition struct {
 	LHS *Attribute
-	RHS *Attribute
+	RHS *Constant
 }
 type LikeCondition struct {
 	LHS *Attribute
 	RHS string
+}
+type Type string
+
+const (
+	StringType  Type = "string"
+	IntegerType Type = "integer"
+)
+
+type Constant struct {
+	Type  Type
+	Value interface{}
+	Raw   string
 }
