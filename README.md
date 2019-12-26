@@ -6,7 +6,14 @@ Run SQL queries against CSV files.
 
 ```
 mtsql "SELECT * FROM cities"
+```
+
+```
 mtsql "SELECT City, State FROM cities"
+```
+
+```
+mtsql "PROFILE SELECT City, State FROM cities WHERE State = 'WA'"
 ```
 
 ## Development
