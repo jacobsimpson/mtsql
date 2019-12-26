@@ -26,7 +26,6 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 		for _, a := range sfw.SelList.Attributes {
 			columns = append(columns, a.Name)
 		}
-		fmt.Printf("Selecting columns : %+v\n", columns)
 		rowReader, err = NewProjection(rowReader, columns)
 		if err != nil {
 			return nil, err
