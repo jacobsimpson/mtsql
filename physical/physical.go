@@ -21,6 +21,17 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 		return nil, err
 	}
 
+	if sfw.Condition != nil {
+		eq, ok := sfw.Condition.(*ast.EqualCondition)
+		if !ok {
+			return nil, fmt.Errorf("only = conditions are currently supported")
+		}
+		rowReader, err = NewFilter(rowReader, eq.LHS.Name, eq.RHS.Name[1:len(eq.RHS.Name)-1])
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if !sfw.SelList.All {
 		columns := []string{}
 		for _, a := range sfw.SelList.Attributes {
@@ -31,5 +42,6 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 			return nil, err
 		}
 	}
+
 	return rowReader, nil
 }
