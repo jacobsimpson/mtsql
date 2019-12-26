@@ -67,16 +67,6 @@ func sfw(lex lexer.Lexer) (*ast.SFW, error) {
 	}
 	q.SelList = selList
 
-	if !lex.Next() {
-		return nil, fmt.Errorf("expected FROM, found end of query")
-	}
-	token = lex.Token()
-	if token.Type == lexer.ErrorType {
-		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
-	}
-	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "FROM" {
-		return nil, fmt.Errorf("expected FROM, found %q", token.Raw)
-	}
 	from, err := from(lex)
 	if err != nil {
 		return nil, err
@@ -138,11 +128,21 @@ func selList(lex lexer.Lexer) (*ast.SelList, error) {
 }
 
 func from(lex lexer.Lexer) (ast.From, error) {
+	if !lex.Next() {
+		return nil, fmt.Errorf("expected FROM, found end of query")
+	}
+	token := lex.Token()
+	if token.Type == lexer.ErrorType {
+		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
+	}
+	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "FROM" {
+		return nil, fmt.Errorf("expected FROM, found %q", token.Raw)
+	}
 	result := ast.Relation{}
 	if !lex.Next() {
 		return nil, fmt.Errorf("expected table, found nothing")
 	}
-	token := lex.Token()
+	token = lex.Token()
 	if token.Type != lexer.IdentifierType {
 		return nil, fmt.Errorf("expected table name, found %q", token.Raw)
 	}
