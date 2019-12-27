@@ -6,9 +6,10 @@ import (
 	"os"
 
 	"github.com/jacobsimpson/mtsql/ast"
+	"github.com/jacobsimpson/mtsql/metadata"
 )
 
-func Validate(q ast.Query) error {
+func Validate(q ast.Query, tables map[string]*metadata.Relation) error {
 	var sfw *ast.SFW
 	if p, ok := q.(*ast.Profile); ok {
 		sfw = p.SFW
@@ -18,40 +19,25 @@ func Validate(q ast.Query) error {
 		return fmt.Errorf("expected a select query, but got something else")
 	}
 
-	rel, ok := sfw.From.(*ast.Relation)
-	if !ok {
-		return fmt.Errorf("expected a relation in the FROM clause, but got something else")
-	}
-	filename := rel.Name + ".csv"
-	f, err := os.Open(filename)
+	tableMetadata, err := validateFrom(sfw.From, tables)
 	if err != nil {
-		return fmt.Errorf("table %q could not be located at %q", rel.Name, filename)
-	}
-	defer f.Close()
-
-	reader := csv.NewReader(f)
-	columns, err := reader.Read()
-	if err != nil {
-		return fmt.Errorf("unable to read columns for table %q at %q", rel.Name, filename)
-	}
-	columnsMap := map[string]bool{}
-	for _, c := range columns {
-		columnsMap[c] = true
+		return err
 	}
 
+	columnsMap := tableMetadata.ColumnsMap()
 	if sfw.Condition != nil {
 		eq, ok := sfw.Condition.(*ast.EqualCondition)
 		if !ok {
 			return fmt.Errorf("only = conditions are currently supported")
 		}
-		if !columnsMap[eq.LHS.Name] {
-			return fmt.Errorf("no column %q in table %q", eq.LHS.Name, rel.Name)
+		if columnsMap[eq.LHS.Name] == nil {
+			return fmt.Errorf("no column %q in table %q", eq.LHS.Name, tableMetadata.Name)
 		}
 	}
 
 	for _, a := range sfw.SelList.Attributes {
-		if !columnsMap[a.Name] && a.Name != "*" {
-			return fmt.Errorf("no column %q in table %q", a.Name, rel.Name)
+		if columnsMap[a.Name] == nil && a.Name != "*" {
+			return fmt.Errorf("no column %q in table %q", a.Name, tableMetadata.Name)
 		}
 	}
 
@@ -59,8 +45,8 @@ func Validate(q ast.Query) error {
 	r := []*ast.Attribute{}
 	for _, a := range sfw.SelList.Attributes {
 		if a.Name == "*" {
-			for _, c := range columns {
-				r = append(r, &ast.Attribute{Name: c})
+			for _, c := range tableMetadata.Columns {
+				r = append(r, &ast.Attribute{Name: c.Name})
 			}
 			continue
 		}
@@ -69,4 +55,39 @@ func Validate(q ast.Query) error {
 	sfw.SelList.Attributes = r
 
 	return nil
+}
+
+func validateFrom(from ast.From, tables map[string]*metadata.Relation) (*metadata.Relation, error) {
+	rel, ok := from.(*ast.Relation)
+	if !ok {
+		return nil, fmt.Errorf("expected a relation in the FROM clause, but got something else")
+	}
+
+	if t := tables[rel.Name]; t != nil {
+		return t, nil
+	}
+
+	md := &metadata.Relation{
+		Name:   rel.Name,
+		Type:   metadata.CsvType,
+		Source: rel.Name + ".csv",
+	}
+	f, err := os.Open(md.Source)
+	if err != nil {
+		return nil, fmt.Errorf("table %q could not be located at %q", rel.Name, md.Source)
+	}
+	defer f.Close()
+
+	reader := csv.NewReader(f)
+	columnNames, err := reader.Read()
+	if err != nil {
+		return nil, fmt.Errorf("unable to read columns for table %q at %q", rel.Name, md.Source)
+	}
+
+	for _, cn := range columnNames {
+		md.Columns = append(md.Columns, &metadata.Column{Name: cn, Type: metadata.AnyType})
+	}
+
+	tables[rel.Name] = md
+	return md, nil
 }

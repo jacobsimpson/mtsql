@@ -9,6 +9,7 @@ import (
 	"github.com/jacobsimpson/mtsql/ast"
 	"github.com/jacobsimpson/mtsql/formatter"
 	"github.com/jacobsimpson/mtsql/lexer"
+	"github.com/jacobsimpson/mtsql/metadata"
 	"github.com/jacobsimpson/mtsql/parser"
 	"github.com/jacobsimpson/mtsql/physical"
 	"github.com/jacobsimpson/mtsql/preprocessor"
@@ -33,7 +34,7 @@ func run() error {
 		return err
 	}
 
-	if err := preprocessor.Validate(q); err != nil {
+	if err := preprocessor.Validate(q, map[string]*metadata.Relation{}); err != nil {
 		return err
 	}
 
