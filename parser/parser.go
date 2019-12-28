@@ -141,20 +141,32 @@ func attribute(lex lexer.Lexer) (*ast.Attribute, error) {
 		return attribute, nil
 	}
 	token = lex.Token()
-	if token.Type != lexer.PeriodType {
+	if token.Type == lexer.PeriodType {
+		attribute.Qualifier = attribute.Name
+
+		if !lex.Next() {
+			return nil, fmt.Errorf("partially specified column '%s.'", attribute.Qualifier)
+		}
+		token = lex.Token()
+		if token.Type != lexer.IdentifierType {
+			return nil, fmt.Errorf("expected identifier as part of qualified column name '%s.', found %q", attribute.Qualifier, token.Raw)
+		}
+		attribute.Name = token.Raw
+		if !lex.Next() {
+			return attribute, nil
+		}
+		token = lex.Token()
+	}
+
+	if token.Type == lexer.CommaType || token.Type == lexer.EOFType ||
+		(token.Type == lexer.IdentifierType && strings.ToUpper(token.Raw) == "FROM") {
 		lex.UnreadToken()
 		return attribute, nil
 	}
-	attribute.Qualifier = attribute.Name
-
-	if !lex.Next() {
-		return nil, fmt.Errorf("partially specified column '%s.'", attribute.Qualifier)
-	}
-	token = lex.Token()
 	if token.Type != lexer.IdentifierType {
-		return nil, fmt.Errorf("expected identifier as part of qualified column name '%s.', found %q", attribute.Qualifier, token.Raw)
+		return nil, fmt.Errorf("expected alias for column name '%s.', found %q", attribute.Name, token.Raw)
 	}
-	attribute.Name = token.Raw
+	attribute.Alias = token.Raw
 	return attribute, nil
 }
 
