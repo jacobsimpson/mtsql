@@ -50,13 +50,20 @@ func (t *projection) PlanDescription() *PlanDescription {
 func (t *projection) Children() []RowReader { return []RowReader{t.rowReader} }
 
 func NewProjection(rowReader RowReader, columns []*metadata.Column) (RowReader, error) {
-	columnMap := map[metadata.Column]int{}
+	columnMap := map[string]int{}
 	for i, c := range rowReader.Columns() {
-		columnMap[*c] = i
+		columnMap[c.QualifiedName()] = i
+		columnMap[c.Name] = i
 	}
 	cols := []int{}
 	for _, c := range columns {
-		cols = append(cols, columnMap[*c])
+		if i, ok := columnMap[c.QualifiedName()]; ok {
+			cols = append(cols, i)
+		} else if i, ok := columnMap[c.Name]; ok {
+			cols = append(cols, i)
+		} else {
+			return nil, fmt.Errorf("unable to find column %q in dataset", c.QualifiedName())
+		}
 	}
 	return &projection{
 		rowReader:     rowReader,
