@@ -57,7 +57,8 @@ func (t *filter) Children() []RowReader { return []RowReader{t.rowReader} }
 func NewFilter(rowReader RowReader, column *metadata.Column, value *ast.Constant) (RowReader, error) {
 	n := -1
 	for i, c := range rowReader.Columns() {
-		if c.Qualifier == column.Qualifier && c.Name == column.Name {
+		if (column.Qualifier == "" && column.Name == c.Name) ||
+			(column.Qualifier == c.Qualifier && column.Name == c.Name) {
 			n = i
 		}
 	}

@@ -36,7 +36,12 @@ type Column struct {
 	Type      ColumnType
 }
 
-func (c *Column) QualifiedName() string { return fmt.Sprintf("%s.%s", c.Qualifier, c.Name) }
+func (c *Column) QualifiedName() string {
+	if c.Qualifier == "" {
+		return c.Name
+	}
+	return fmt.Sprintf("%s.%s", c.Qualifier, c.Name)
+}
 
 func (c *Column) String() string {
 	return fmt.Sprintf("{Qualifier: %q, Name: %q, Alias: %q, Type: %s}",
