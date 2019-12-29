@@ -42,8 +42,9 @@ func printPlanDescription(w io.Writer, rowReader physical.RowReader, indentation
 	// room for the line to continue down. The last child doesn't have to be
 	// indented.
 	indentationIncrement := 1
-	for i, rr := range children {
-		if i == len(children)-1 {
+	for i := len(children) - 1; i >= 0; i-- {
+		rr := children[i]
+		if i == 0 {
 			indentationIncrement = 0
 		}
 		fmt.Fprintf(w, "%s|%s\n", strings.Repeat("| ", indentation), strings.Repeat("\\", indentationIncrement))
