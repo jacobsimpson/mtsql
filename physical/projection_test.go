@@ -1,39 +1,15 @@
 package physical
 
 import (
-	"io"
 	"testing"
 
 	"github.com/jacobsimpson/mtsql/metadata"
 	"github.com/stretchr/testify/assert"
 )
 
-type MockRowReader struct {
-	columns []*metadata.Column
-	rows    [][]string
-	next    int
-}
-
-func (m *MockRowReader) Columns() []*metadata.Column { return m.columns }
-func (m *MockRowReader) Read() ([]string, error) {
-	if m.next >= len(m.rows) {
-		return nil, io.EOF
-	}
-	row := m.rows[m.next]
-	m.next++
-	return row, nil
-}
-func (m *MockRowReader) Close() {}
-func (m *MockRowReader) Reset() error {
-	m.next = 0
-	return nil
-}
-func (m *MockRowReader) PlanDescription() *PlanDescription { return nil }
-func (m *MockRowReader) Children() []RowReader             { return nil }
-
 func TestProjectOneColumn(t *testing.T) {
 	assert := assert.New(t)
-	rowReader := MockRowReader{
+	rowReader := memoryScan{
 		columns: []*metadata.Column{
 			&metadata.Column{Qualifier: "tb1", Name: "col1"},
 			&metadata.Column{Qualifier: "tb1", Name: "col2"},
@@ -63,7 +39,7 @@ func TestProjectOneColumn(t *testing.T) {
 
 func TestProjectTwoColumn(t *testing.T) {
 	assert := assert.New(t)
-	rowReader := MockRowReader{
+	rowReader := memoryScan{
 		columns: []*metadata.Column{
 			&metadata.Column{Qualifier: "tb1", Name: "col1"},
 			&metadata.Column{Qualifier: "tb1", Name: "col2"},

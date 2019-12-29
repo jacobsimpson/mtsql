@@ -9,7 +9,7 @@ import (
 
 func TestNestedLoopJoin(t *testing.T) {
 	assert := assert.New(t)
-	left := &MockRowReader{
+	left := &memoryScan{
 		columns: []*metadata.Column{
 			&metadata.Column{Qualifier: "tb1", Name: "lc1"},
 			&metadata.Column{Qualifier: "tb1", Name: "lc2"},
@@ -20,7 +20,7 @@ func TestNestedLoopJoin(t *testing.T) {
 			[]string{"row2-col1", "left-row2-col2", "left-row2-col3"},
 		},
 	}
-	right := &MockRowReader{
+	right := &memoryScan{
 		columns: []*metadata.Column{
 			&metadata.Column{Qualifier: "tb2", Name: "rc1"},
 			&metadata.Column{Qualifier: "tb2", Name: "rc2"},
