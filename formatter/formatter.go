@@ -31,9 +31,37 @@ func NewTableFormatter(rowReader physical.RowReader) Formatter {
 	}
 }
 
+type justification string
+
+const (
+	left  justification = "left"
+	right justification = "right"
+)
+
+type columnFormat struct {
+	justification justification
+	width         int
+	format        string
+}
+
 func (f *tableFormatter) Print(w io.Writer) {
+	columnFormats := []columnFormat{}
+
 	for _, name := range f.rowReader.Columns() {
-		fmt.Fprintf(w, "%10s", name.QualifiedName())
+		cf := columnFormat{
+			justification: left,
+			width:         len(name.QualifiedName()),
+		}
+		switch cf.justification {
+		case left:
+			cf.format = fmt.Sprintf("%%-%ds ", cf.width)
+		case right:
+			cf.format = fmt.Sprintf("%%%ds ", cf.width)
+		}
+
+		fmt.Fprintf(w, cf.format, name.QualifiedName())
+
+		columnFormats = append(columnFormats, cf)
 	}
 	fmt.Fprintf(w, "\n")
 	for {
@@ -42,8 +70,8 @@ func (f *tableFormatter) Print(w io.Writer) {
 			fmt.Fprintf(w, "\n\n%+v\n\n", err)
 			return
 		}
-		for _, cell := range row {
-			fmt.Fprintf(w, "%10s", cell)
+		for i, cell := range row {
+			fmt.Fprintf(w, columnFormats[i].format, cell)
 		}
 		fmt.Fprintf(w, "\n")
 	}

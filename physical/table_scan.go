@@ -12,6 +12,7 @@ type tableScan struct {
 	file      *os.File
 	reader    *csv.Reader
 	tableName string
+	fileName  string
 	columns   []*metadata.Column
 }
 
@@ -33,7 +34,7 @@ func (t *tableScan) Reset() error {
 }
 
 func (t *tableScan) init() error {
-	f, err := os.Open(t.tableName)
+	f, err := os.Open(t.fileName)
 	if err != nil {
 		return err
 	}
@@ -54,15 +55,16 @@ func (t *tableScan) init() error {
 func (t *tableScan) PlanDescription() *PlanDescription {
 	return &PlanDescription{
 		Name:        "TableScan",
-		Description: fmt.Sprintf("%s", t.tableName),
+		Description: fmt.Sprintf("%s, %s", t.tableName, t.fileName),
 	}
 }
 
 func (t *tableScan) Children() []RowReader { return []RowReader{} }
 
-func NewTableScan(tableName string) (RowReader, error) {
+func NewTableScan(tableName, fileName string) (RowReader, error) {
 	ts := &tableScan{
 		tableName: tableName,
+		fileName:  fileName,
 	}
 	if err := ts.init(); err != nil {
 		return nil, err

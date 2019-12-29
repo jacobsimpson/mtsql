@@ -11,14 +11,14 @@ import (
 func TestReadOneRow(t *testing.T) {
 	assert := assert.New(t)
 
-	rowReader, err := physical.NewTableScan("testdata/cities.csv")
+	rowReader, err := physical.NewTableScan("cities", "testdata/cities.csv")
 	assert.Nil(err)
 
 	assert.Equal(
-		&metadata.Column{Qualifier: "testdata/cities.csv", Name: "LatD"},
+		&metadata.Column{Qualifier: "cities", Name: "LatD"},
 		rowReader.Columns()[0])
 	assert.Equal(
-		&metadata.Column{Qualifier: "testdata/cities.csv", Name: "City"},
+		&metadata.Column{Qualifier: "cities", Name: "City"},
 		rowReader.Columns()[8])
 
 	row, err := rowReader.Read()

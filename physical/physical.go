@@ -31,17 +31,17 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 
 	var rowReader RowReader
 	if rel, ok := sfw.From.(*ast.Relation); ok {
-		rr, err := NewTableScan(rel.Name + ".csv")
+		rr, err := NewTableScan(rel.Name, rel.Name+".csv")
 		if err != nil {
 			return nil, err
 		}
 		rowReader = rr
 	} else if ij, ok := sfw.From.(*ast.InnerJoin); ok {
-		left, err := NewTableScan(ij.Left.Name + ".csv")
+		left, err := NewTableScan(ij.Left.Name, ij.Left.Name+".csv")
 		if err != nil {
 			return nil, err
 		}
-		right, err := NewTableScan(ij.Right.Name + ".csv")
+		right, err := NewTableScan(ij.Right.Name, ij.Right.Name+".csv")
 		if err != nil {
 			return nil, err
 		}
