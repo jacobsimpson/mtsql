@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jacobsimpson/mtsql/ast"
+	"github.com/jacobsimpson/mtsql/metadata"
 )
 
 type SortOrder string
@@ -14,7 +15,7 @@ const (
 )
 
 type SortScanCriteria struct {
-	Column    string
+	Column    *metadata.Column
 	SortOrder SortOrder
 }
 
@@ -56,7 +57,13 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 	if sfw.OrderBy != nil {
 		columns := []SortScanCriteria{}
 		for _, c := range sfw.OrderBy.Criteria {
-			sc := SortScanCriteria{Column: c.Attribute.Name, SortOrder: Asc}
+			sc := SortScanCriteria{
+				Column: &metadata.Column{
+					Qualifier: c.Attribute.Qualifier,
+					Name:      c.Attribute.Name,
+				},
+				SortOrder: Asc,
+			}
 			if c.SortOrder == ast.Desc {
 				sc.SortOrder = Desc
 			}
@@ -74,16 +81,21 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 		if !ok {
 			return nil, fmt.Errorf("only = conditions are currently supported")
 		}
-		rr, err := NewFilter(rowReader, eq.LHS.Name, eq.RHS)
+		rr, err := NewFilter(rowReader,
+			&metadata.Column{Qualifier: eq.LHS.Qualifier, Name: eq.LHS.Name},
+			eq.RHS)
 		if err != nil {
 			return nil, err
 		}
 		rowReader = rr
 	}
 
-	columns := []string{}
+	columns := []*metadata.Column{}
 	for _, a := range sfw.SelList.Attributes {
-		columns = append(columns, a.Name)
+		columns = append(columns, &metadata.Column{
+			Qualifier: a.Qualifier,
+			Name:      a.Name,
+		})
 	}
 	rr, err := NewProjection(rowReader, columns)
 	if err != nil {

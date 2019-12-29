@@ -5,16 +5,17 @@ import (
 	"strconv"
 
 	"github.com/jacobsimpson/mtsql/ast"
+	"github.com/jacobsimpson/mtsql/metadata"
 )
 
 type filter struct {
 	rowReader    RowReader
-	columnName   string
+	column       *metadata.Column
 	columnNumber int
 	value        *ast.Constant
 }
 
-func (t *filter) Columns() []string {
+func (t *filter) Columns() []*metadata.Column {
 	return t.rowReader.Columns()
 }
 
@@ -47,25 +48,25 @@ func (t *filter) Reset() error { return t.rowReader.Reset() }
 func (t *filter) PlanDescription() *PlanDescription {
 	return &PlanDescription{
 		Name:        "Filter",
-		Description: fmt.Sprintf("%s = %v", t.columnName, t.value.Value),
+		Description: fmt.Sprintf("%s = %v", t.column.QualifiedName(), t.value.Value),
 	}
 }
 
 func (t *filter) Children() []RowReader { return []RowReader{t.rowReader} }
 
-func NewFilter(rowReader RowReader, columnName string, value *ast.Constant) (RowReader, error) {
+func NewFilter(rowReader RowReader, column *metadata.Column, value *ast.Constant) (RowReader, error) {
 	n := -1
 	for i, c := range rowReader.Columns() {
-		if c == columnName {
+		if c.Qualifier == column.Qualifier && c.Name == column.Name {
 			n = i
 		}
 	}
 	if n < 0 {
-		return nil, fmt.Errorf("column %q does not exist in relation", columnName)
+		return nil, fmt.Errorf("column %q does not exist in relation", column.QualifiedName())
 	}
 	return &filter{
 		rowReader:    rowReader,
-		columnName:   columnName,
+		column:       column,
 		columnNumber: n,
 		value:        value,
 	}, nil

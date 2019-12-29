@@ -33,7 +33,7 @@ func NewTableFormatter(rowReader physical.RowReader) Formatter {
 
 func (f *tableFormatter) Print(w io.Writer) {
 	for _, name := range f.rowReader.Columns() {
-		fmt.Fprintf(w, "%10s", name)
+		fmt.Fprintf(w, "%10s", name.QualifiedName())
 	}
 	fmt.Fprintf(w, "\n")
 	for {

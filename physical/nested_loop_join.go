@@ -2,6 +2,8 @@ package physical
 
 import (
 	"io"
+
+	"github.com/jacobsimpson/mtsql/metadata"
 )
 
 type nestedLoopJoin struct {
@@ -10,8 +12,8 @@ type nestedLoopJoin struct {
 	leftRow []string
 }
 
-func (t *nestedLoopJoin) Columns() []string {
-	result := []string{}
+func (t *nestedLoopJoin) Columns() []*metadata.Column {
+	result := []*metadata.Column{}
 	for _, c := range t.left.Columns() {
 		result = append(result, c)
 	}

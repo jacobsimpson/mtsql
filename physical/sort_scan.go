@@ -5,6 +5,8 @@ import (
 	"io"
 	"sort"
 	"strings"
+
+	"github.com/jacobsimpson/mtsql/metadata"
 )
 
 type sortScan struct {
@@ -14,7 +16,7 @@ type sortScan struct {
 	next          int
 }
 
-func (t *sortScan) Columns() []string {
+func (t *sortScan) Columns() []*metadata.Column {
 	return t.rowReader.Columns()
 }
 
@@ -34,9 +36,13 @@ func (t *sortScan) Reset() error {
 }
 
 func (t *sortScan) PlanDescription() *PlanDescription {
+	columnNames := []string{}
+	for _, c := range t.Columns() {
+		columnNames = append(columnNames, c.QualifiedName())
+	}
 	return &PlanDescription{
 		Name:        "SortScan",
-		Description: fmt.Sprintf("%v", strings.Join(t.Columns(), ", ")),
+		Description: fmt.Sprintf("%v", strings.Join(columnNames, ", ")),
 	}
 }
 
@@ -79,14 +85,14 @@ func (s *columnSorter) Less(i, j int) bool {
 }
 
 func NewSortScan(rowReader RowReader, columns []SortScanCriteria) (RowReader, error) {
-	columnMap := map[string]int{}
+	columnMap := map[metadata.Column]int{}
 	for i, c := range rowReader.Columns() {
-		columnMap[c] = i
+		columnMap[*c] = i
 	}
 	cols := []int{}
 	sortOrder := []SortOrder{}
 	for _, c := range columns {
-		cols = append(cols, columnMap[c.Column])
+		cols = append(cols, columnMap[*c.Column])
 		sortOrder = append(sortOrder, c.SortOrder)
 	}
 

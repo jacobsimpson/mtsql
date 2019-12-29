@@ -77,11 +77,6 @@ func Validate(q ast.Query, tables map[string]*metadata.Relation) error {
 }
 
 func validateFrom(from ast.From, tables map[string]*metadata.Relation) ([]*metadata.Relation, error) {
-	//rel, ok := from.(*ast.Relation)
-	//if !ok {
-	//	return nil, fmt.Errorf("expected a relation in the FROM clause, but got something else")
-	//}
-
 	result := []*metadata.Relation{}
 	for _, rel := range from.Tables() {
 		if t := tables[rel.Name]; t != nil {
@@ -106,22 +101,26 @@ func validateFrom(from ast.From, tables map[string]*metadata.Relation) ([]*metad
 	return result, nil
 }
 
-func loadColumns(name, file string) ([]*metadata.Column, error) {
+func loadColumns(tableName, file string) ([]*metadata.Column, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, fmt.Errorf("table %q could not be located at %q", name, file)
+		return nil, fmt.Errorf("table %q could not be located at %q", tableName, file)
 	}
 	defer f.Close()
 
 	reader := csv.NewReader(f)
 	columnNames, err := reader.Read()
 	if err != nil {
-		return nil, fmt.Errorf("unable to read columns for table %q at %q", name, file)
+		return nil, fmt.Errorf("unable to read columns for table %q at %q", tableName, file)
 	}
 
 	var columns []*metadata.Column
 	for _, cn := range columnNames {
-		columns = append(columns, &metadata.Column{Name: cn, Type: metadata.StringType})
+		columns = append(columns, &metadata.Column{
+			Qualifier: tableName,
+			Name:      cn,
+			Type:      metadata.StringType,
+		})
 	}
 	return columns, nil
 }

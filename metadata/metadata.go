@@ -1,5 +1,7 @@
 package metadata
 
+import "fmt"
+
 type RelationType string
 
 const (
@@ -28,6 +30,10 @@ const (
 )
 
 type Column struct {
-	Name string
-	Type ColumnType
+	Qualifier string
+	Name      string
+	Alias     string
+	Type      ColumnType
 }
+
+func (c *Column) QualifiedName() string { return fmt.Sprintf("%s.%s", c.Qualifier, c.Name) }

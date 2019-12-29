@@ -4,16 +4,18 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+
+	"github.com/jacobsimpson/mtsql/metadata"
 )
 
 type tableScan struct {
 	file      *os.File
 	reader    *csv.Reader
 	tableName string
-	columns   []string
+	columns   []*metadata.Column
 }
 
-func (t *tableScan) Columns() []string {
+func (t *tableScan) Columns() []*metadata.Column {
 	return t.columns
 }
 
@@ -40,7 +42,12 @@ func (t *tableScan) init() error {
 	columns, err := reader.Read()
 
 	t.reader = reader
-	t.columns = columns
+	for _, c := range columns {
+		t.columns = append(t.columns, &metadata.Column{
+			Qualifier: t.tableName,
+			Name:      c,
+		})
+	}
 	return nil
 }
 

@@ -3,6 +3,7 @@ package physical_test
 import (
 	"testing"
 
+	"github.com/jacobsimpson/mtsql/metadata"
 	"github.com/jacobsimpson/mtsql/physical"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,12 +14,15 @@ func TestReadOneRow(t *testing.T) {
 	rowReader, err := physical.NewTableScan("testdata/cities.csv")
 	assert.Nil(err)
 
-	assert.Equal(rowReader.Columns()[0], "LatD")
-	assert.Equal(rowReader.Columns()[8], "City")
+	assert.Equal(
+		&metadata.Column{Qualifier: "testdata/cities.csv", Name: "LatD"},
+		rowReader.Columns()[0])
+	assert.Equal(
+		&metadata.Column{Qualifier: "testdata/cities.csv", Name: "City"},
+		rowReader.Columns()[8])
 
 	row, err := rowReader.Read()
 	assert.Nil(err)
-	assert.Equal(row[0], "41")
-	assert.Equal(row[1], "5")
-	//41,5,59,"N",80,39,0,"W","Youngstown",OH
+	assert.Equal("41", row[0])
+	assert.Equal("5", row[1])
 }
