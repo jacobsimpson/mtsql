@@ -14,6 +14,7 @@ type tableScan struct {
 	tableName string
 	fileName  string
 	columns   []*metadata.Column
+	firstRow  int64
 }
 
 func (t *tableScan) Columns() []*metadata.Column {
@@ -29,8 +30,8 @@ func (t *tableScan) Close() {
 }
 
 func (t *tableScan) Reset() error {
-	t.Close()
-	return t.init()
+	_, err := t.file.Seek(t.firstRow, 0)
+	return err
 }
 
 func (t *tableScan) init() error {
@@ -41,6 +42,14 @@ func (t *tableScan) init() error {
 	t.file = f
 	reader := csv.NewReader(f)
 	columns, err := reader.Read()
+	if err != nil {
+		return err
+	}
+	firstRow, err := f.Seek(0, 1)
+	if err != nil {
+		return err
+	}
+	t.firstRow = firstRow
 
 	t.reader = reader
 	for _, c := range columns {
