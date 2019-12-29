@@ -8,6 +8,7 @@ type PlanDescription struct {
 type RowReader interface {
 	Columns() []string
 	Read() ([]string, error)
+	Reset() error
 	Close()
 
 	PlanDescription() *PlanDescription

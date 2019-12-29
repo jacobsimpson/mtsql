@@ -1,9 +1,9 @@
-package physical_test
+package physical
 
 import (
+	"io"
 	"testing"
 
-	"github.com/jacobsimpson/mtsql/physical"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,15 +16,19 @@ type MockRowReader struct {
 func (m *MockRowReader) Columns() []string { return m.columns }
 func (m *MockRowReader) Read() ([]string, error) {
 	if m.next >= len(m.rows) {
-		return nil, nil
+		return nil, io.EOF
 	}
 	row := m.rows[m.next]
 	m.next++
 	return row, nil
 }
-func (m *MockRowReader) Close()                                     {}
-func (m *MockRowReader) PlanDescription() *physical.PlanDescription { return nil }
-func (m *MockRowReader) Children() []physical.RowReader             { return nil }
+func (m *MockRowReader) Close() {}
+func (m *MockRowReader) Reset() error {
+	m.next = 0
+	return nil
+}
+func (m *MockRowReader) PlanDescription() *PlanDescription { return nil }
+func (m *MockRowReader) Children() []RowReader             { return nil }
 
 func TestProjectOneColumn(t *testing.T) {
 	assert := assert.New(t)
@@ -36,7 +40,7 @@ func TestProjectOneColumn(t *testing.T) {
 		},
 	}
 
-	proj, err := physical.NewProjection(&rowReader, []string{"col3"})
+	proj, err := NewProjection(&rowReader, []string{"col3"})
 	assert.Nil(err)
 	assert.NotNil(proj)
 
@@ -58,7 +62,7 @@ func TestProjectTwoColumn(t *testing.T) {
 		},
 	}
 
-	proj, err := physical.NewProjection(&rowReader, []string{"col3", "col1"})
+	proj, err := NewProjection(&rowReader, []string{"col3", "col1"})
 	assert.Nil(err)
 	assert.NotNil(proj)
 

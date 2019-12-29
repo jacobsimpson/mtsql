@@ -28,13 +28,29 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 		return nil, fmt.Errorf("expected a select query, but got something else")
 	}
 
-	rel, ok := sfw.From.(*ast.Relation)
-	if !ok {
+	var rowReader RowReader
+	if rel, ok := sfw.From.(*ast.Relation); ok {
+		rr, err := NewTableScan(rel.Name + ".csv")
+		if err != nil {
+			return nil, err
+		}
+		rowReader = rr
+	} else if ij, ok := sfw.From.(*ast.InnerJoin); ok {
+		left, err := NewTableScan(ij.Left.Name + ".csv")
+		if err != nil {
+			return nil, err
+		}
+		right, err := NewTableScan(ij.Right.Name + ".csv")
+		if err != nil {
+			return nil, err
+		}
+		rowReader, err = NewNestedLoopJoin(left, right)
+		if err != nil {
+			return nil, err
+		}
+		// , ij.On
+	} else {
 		return nil, fmt.Errorf("expected a relation in the FROM clause, but got something else")
-	}
-	rowReader, err := NewTableScan(rel.Name + ".csv")
-	if err != nil {
-		return nil, err
 	}
 
 	if sfw.OrderBy != nil {
@@ -46,31 +62,34 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 			}
 			columns = append(columns, sc)
 		}
-		rowReader, err = NewSortScan(rowReader, columns)
+		rr, err := NewSortScan(rowReader, columns)
 		if err != nil {
 			return nil, err
 		}
+		rowReader = rr
 	}
 
-	if sfw.Condition != nil {
-		eq, ok := sfw.Condition.(*ast.EqualCondition)
+	if sfw.Where != nil {
+		eq, ok := sfw.Where.(*ast.EqualCondition)
 		if !ok {
 			return nil, fmt.Errorf("only = conditions are currently supported")
 		}
-		rowReader, err = NewFilter(rowReader, eq.LHS.Name, eq.RHS)
+		rr, err := NewFilter(rowReader, eq.LHS.Name, eq.RHS)
 		if err != nil {
 			return nil, err
 		}
+		rowReader = rr
 	}
 
 	columns := []string{}
 	for _, a := range sfw.SelList.Attributes {
 		columns = append(columns, a.Name)
 	}
-	rowReader, err = NewProjection(rowReader, columns)
+	rr, err := NewProjection(rowReader, columns)
 	if err != nil {
 		return nil, err
 	}
+	rowReader = rr
 
 	return rowReader, nil
 }

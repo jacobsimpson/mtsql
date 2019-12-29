@@ -31,7 +31,8 @@ func (t *projection) Read() ([]string, error) {
 	return r, nil
 }
 
-func (t *projection) Close() {}
+func (t *projection) Close()       {}
+func (t *projection) Reset() error { return t.rowReader.Reset() }
 
 func (t *projection) PlanDescription() *PlanDescription {
 	return &PlanDescription{

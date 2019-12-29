@@ -41,7 +41,8 @@ func (t *filter) Read() ([]string, error) {
 	}
 }
 
-func (t *filter) Close() {}
+func (t *filter) Close()       {}
+func (t *filter) Reset() error { return t.rowReader.Reset() }
 
 func (t *filter) PlanDescription() *PlanDescription {
 	return &PlanDescription{

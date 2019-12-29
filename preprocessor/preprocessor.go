@@ -24,20 +24,27 @@ func Validate(q ast.Query, tables map[string]*metadata.Relation) error {
 		return err
 	}
 
-	columnsMap := tableMetadata.ColumnsMap()
-	if sfw.Condition != nil {
-		eq, ok := sfw.Condition.(*ast.EqualCondition)
+	columnsMap := map[string]*metadata.Column{}
+	tablesMap := map[string]*metadata.Relation{}
+	for _, tmd := range tableMetadata {
+		tablesMap[tmd.Name] = tmd
+		for k, v := range tmd.ColumnsMap() {
+			columnsMap[k] = v
+		}
+	}
+	if sfw.Where != nil {
+		eq, ok := sfw.Where.(*ast.EqualCondition)
 		if !ok {
 			return fmt.Errorf("only = conditions are currently supported")
 		}
 		if columnsMap[eq.LHS.Name] == nil {
-			return fmt.Errorf("no column %q in table %q", eq.LHS.Name, tableMetadata.Name)
+			return fmt.Errorf("no column %q in query", eq.LHS.Name)
 		}
 	}
 
 	for _, a := range sfw.SelList.Attributes {
 		if columnsMap[a.Name] == nil && a.Name != "*" {
-			return fmt.Errorf("no column %q in table %q", a.Name, tableMetadata.Name)
+			return fmt.Errorf("no column %q in query", a.Name)
 		}
 	}
 
@@ -45,10 +52,22 @@ func Validate(q ast.Query, tables map[string]*metadata.Relation) error {
 	r := []*ast.Attribute{}
 	for _, a := range sfw.SelList.Attributes {
 		if a.Name == "*" {
-			for _, c := range tableMetadata.Columns {
-				r = append(r, &ast.Attribute{Name: c.Name})
+			if a.Qualifier == "" {
+				for _, tmd := range tableMetadata {
+					for _, c := range tmd.Columns {
+						r = append(r, &ast.Attribute{Name: c.Name})
+					}
+				}
+				continue
+			} else {
+				tmd := tablesMap[a.Qualifier]
+				if tmd == nil {
+					return fmt.Errorf("table %q isn't in the query", a.Qualifier)
+				}
+				for _, c := range tmd.Columns {
+					r = append(r, &ast.Attribute{Name: c.Name})
+				}
 			}
-			continue
 		}
 		r = append(r, a)
 	}
@@ -57,37 +76,52 @@ func Validate(q ast.Query, tables map[string]*metadata.Relation) error {
 	return nil
 }
 
-func validateFrom(from ast.From, tables map[string]*metadata.Relation) (*metadata.Relation, error) {
-	rel, ok := from.(*ast.Relation)
-	if !ok {
-		return nil, fmt.Errorf("expected a relation in the FROM clause, but got something else")
-	}
+func validateFrom(from ast.From, tables map[string]*metadata.Relation) ([]*metadata.Relation, error) {
+	//rel, ok := from.(*ast.Relation)
+	//if !ok {
+	//	return nil, fmt.Errorf("expected a relation in the FROM clause, but got something else")
+	//}
 
-	if t := tables[rel.Name]; t != nil {
-		return t, nil
-	}
+	result := []*metadata.Relation{}
+	for _, rel := range from.Tables() {
+		if t := tables[rel.Name]; t != nil {
+			result = append(result, t)
+			continue
+		}
 
-	md := &metadata.Relation{
-		Name:   rel.Name,
-		Type:   metadata.CsvType,
-		Source: rel.Name + ".csv",
+		md := &metadata.Relation{
+			Name:   rel.Name,
+			Type:   metadata.CsvType,
+			Source: rel.Name + ".csv",
+		}
+		columns, err := loadColumns(md.Name, md.Source)
+		if err != nil {
+			return nil, err
+		}
+		md.Columns = columns
+
+		tables[rel.Name] = md
+		result = append(result, md)
 	}
-	f, err := os.Open(md.Source)
+	return result, nil
+}
+
+func loadColumns(name, file string) ([]*metadata.Column, error) {
+	f, err := os.Open(file)
 	if err != nil {
-		return nil, fmt.Errorf("table %q could not be located at %q", rel.Name, md.Source)
+		return nil, fmt.Errorf("table %q could not be located at %q", name, file)
 	}
 	defer f.Close()
 
 	reader := csv.NewReader(f)
 	columnNames, err := reader.Read()
 	if err != nil {
-		return nil, fmt.Errorf("unable to read columns for table %q at %q", rel.Name, md.Source)
+		return nil, fmt.Errorf("unable to read columns for table %q at %q", name, file)
 	}
 
+	var columns []*metadata.Column
 	for _, cn := range columnNames {
-		md.Columns = append(md.Columns, &metadata.Column{Name: cn, Type: metadata.AnyType})
+		columns = append(columns, &metadata.Column{Name: cn, Type: metadata.AnyType})
 	}
-
-	tables[rel.Name] = md
-	return md, nil
+	return columns, nil
 }

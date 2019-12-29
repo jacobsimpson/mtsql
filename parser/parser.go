@@ -14,34 +14,28 @@ func Parse(lex lexer.Lexer) (ast.Query, error) {
 }
 
 func query(lex lexer.Lexer) (ast.Query, error) {
-	if !lex.Next() {
-		return nil, nil
-	}
-	token := lex.Token()
-	if token.Type == lexer.ErrorType {
-		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
-	}
-	if token.Type == lexer.IdentifierType {
-		if strings.ToUpper(token.Raw) == "SELECT" {
-			lex.UnreadToken()
-			return sfw(lex)
-		} else if strings.ToUpper(token.Raw) == "PROFILE" {
-			lex.UnreadToken()
-			return profile(lex)
-		}
+	if s, err := sfw(lex); err != nil {
+		return nil, err
+	} else if s != nil {
+		return s, nil
 	}
 
-	return nil, fmt.Errorf("expected SELECT, found %q", token.Raw)
+	if p, err := profile(lex); err != nil {
+		return nil, err
+	} else if p != nil {
+		return p, nil
+	}
+
+	return nil, fmt.Errorf("expected SELECT or PROFILE")
 }
 
 func profile(lex lexer.Lexer) (*ast.Profile, error) {
-	if !lex.Next() {
+	if ok, err := ifKeywords(lex, "PROFILE"); err != nil {
+		return nil, err
+	} else if !ok {
 		return nil, nil
 	}
-	token := lex.Token()
-	if token.Type != lexer.IdentifierType || strings.ToUpper(token.Raw) != "PROFILE" {
-		return nil, fmt.Errorf("expected PROFILE, found %q", token.Raw)
-	}
+
 	sfw, err := sfw(lex)
 	if err != nil {
 		return nil, err
@@ -52,12 +46,10 @@ func profile(lex lexer.Lexer) (*ast.Profile, error) {
 }
 
 func sfw(lex lexer.Lexer) (*ast.SFW, error) {
-	if !lex.Next() {
+	if ok, err := ifKeywords(lex, "SELECT"); err != nil {
+		return nil, err
+	} else if !ok {
 		return nil, nil
-	}
-	token := lex.Token()
-	if token.Type != lexer.IdentifierType || strings.ToUpper(token.Raw) != "SELECT" {
-		return nil, fmt.Errorf("expected SELECT, found %q", token.Raw)
 	}
 
 	q := ast.SFW{}
@@ -73,11 +65,11 @@ func sfw(lex lexer.Lexer) (*ast.SFW, error) {
 	}
 	q.From = from
 
-	condition, err := condition(lex)
+	where, err := where(lex)
 	if err != nil {
 		return nil, err
 	}
-	q.Condition = condition
+	q.Where = where
 
 	orderby, err := orderBy(lex)
 	if err != nil {
@@ -88,7 +80,7 @@ func sfw(lex lexer.Lexer) (*ast.SFW, error) {
 	if !lex.Next() {
 		return &q, nil
 	}
-	token = lex.Token()
+	token := lex.Token()
 	if token.Type == lexer.ErrorType {
 		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
 	}
@@ -171,65 +163,213 @@ func attribute(lex lexer.Lexer) (*ast.Attribute, error) {
 }
 
 func from(lex lexer.Lexer) (ast.From, error) {
-	if !lex.Next() {
-		return nil, fmt.Errorf("expected FROM, found end of query")
+	if ok, err := ifKeywords(lex, "FROM"); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, fmt.Errorf("expected FROM clause")
 	}
-	token := lex.Token()
-	if token.Type == lexer.ErrorType {
-		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
+
+	tableName, err := tableName(lex)
+	if err != nil {
+		return nil, err
 	}
-	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "FROM" {
-		return nil, fmt.Errorf("expected FROM, found %q", token.Raw)
+
+	if join, err := innerJoin(lex, tableName); err != nil {
+		return nil, err
+	} else if join != nil {
+		return join, nil
 	}
-	result := ast.Relation{}
+	return tableName, nil
+}
+
+func tableName(lex lexer.Lexer) (*ast.Relation, error) {
 	if !lex.Next() {
 		return nil, fmt.Errorf("expected table, found nothing")
 	}
-	token = lex.Token()
+	token := lex.Token()
 	if token.Type != lexer.IdentifierType {
 		return nil, fmt.Errorf("expected table name, found %q", token.Raw)
 	}
-	result.Name = token.Raw
-	return &result, nil
+	return &ast.Relation{Name: token.Raw}, nil
 }
 
-func condition(lex lexer.Lexer) (ast.Condition, error) {
-	if !lex.Next() {
+func innerJoin(lex lexer.Lexer, left *ast.Relation) (*ast.InnerJoin, error) {
+	if ok, err := ifKeywords(lex, "INNER", "JOIN"); err != nil {
+		return nil, err
+	} else if !ok {
 		return nil, nil
+	}
+
+	right, err := tableName(lex)
+	if err != nil {
+		return nil, err
+	}
+
+	if ok, err := ifKeywords(lex, "ON"); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, fmt.Errorf("INNER JOIN requires ON")
+	}
+
+	on, err := fieldEqualsField(lex)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.InnerJoin{
+		Left:  left,
+		Right: right,
+		On:    on,
+	}, nil
+}
+
+func field(lex lexer.Lexer) (*ast.Attribute, error) {
+	if !lex.Next() {
+		return nil, fmt.Errorf("expected field name, found nothing")
 	}
 	token := lex.Token()
-	if token.Type == lexer.ErrorType {
-		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
+	if token.Type != lexer.IdentifierType {
+		return nil, fmt.Errorf("expected field name, found %q", token.Raw)
 	}
-	if token.Type == lexer.EOFType {
-		return nil, nil
+
+	result := &ast.Attribute{Name: token.Raw}
+
+	// Check if this is a qualified field name.
+	if !lex.Next() {
+		return result, nil
 	}
-	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "WHERE" {
+	token = lex.Token()
+	if token.Type != lexer.PeriodType {
 		lex.UnreadToken()
-		return nil, nil
+		return result, nil
 	}
-	result := ast.EqualCondition{}
+
 	if !lex.Next() {
 		return nil, fmt.Errorf("expected an attribute, found nothing")
 	}
 	token = lex.Token()
 	if token.Type != lexer.IdentifierType {
-		return nil, fmt.Errorf("expected attribute name, found %q", token.Raw)
+		return nil, fmt.Errorf("expected field name, found %q", token.Raw)
 	}
-	result.LHS = &ast.Attribute{Name: token.Raw}
 
+	result.Qualifier = result.Name
+	result.Name = token.Raw
+	return result, nil
+}
+
+func ifToken(lex lexer.Lexer, t lexer.Type) (bool, error) {
 	if !lex.Next() {
-		return nil, fmt.Errorf("expected =, found nothing")
+		return false, nil
 	}
-	token = lex.Token()
-	if token.Type != lexer.EqualType {
-		return nil, fmt.Errorf("expected =, found %q", token.Raw)
+	switch lex.Token().Type {
+	case t:
+		return true, nil
+	case lexer.ErrorType:
+		return false, fmt.Errorf("unable to get next token")
+	default:
+		lex.UnreadToken()
+		return false, nil
 	}
+}
+
+func fieldEqualsField(lex lexer.Lexer) (*ast.EqualColumnCondition, error) {
+	left, err := field(lex)
+	if err != nil {
+		return nil, err
+	}
+
+	if ok, err := ifToken(lex, lexer.EqualType); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, fmt.Errorf("expected = after %q", left.Name)
+	}
+
+	right, err := field(lex)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.EqualColumnCondition{
+		Left:  left,
+		Right: right,
+	}, nil
+}
+
+func ifKeywords(lex lexer.Lexer, keyword string, keywords ...string) (bool, error) {
+	if !lex.Next() {
+		return false, nil
+	}
+	token := lex.Token()
+	if token.Type == lexer.ErrorType {
+		return false, fmt.Errorf("could not tokenize input: %v", token.Raw)
+	}
+	if token.Type == lexer.EOFType {
+		return false, nil
+	}
+	if token.Type != lexer.IdentifierType || strings.ToUpper(token.Raw) != keyword {
+		lex.UnreadToken()
+		return false, nil
+	}
+
+	for _, keyword := range keywords {
+		if !lex.Next() {
+			return false, fmt.Errorf("expected keyword %q, found nothing", keyword)
+		}
+		token := lex.Token()
+		if token.Type == lexer.ErrorType {
+			return false, fmt.Errorf("could not tokenize input: %v", token.Raw)
+		}
+		if token.Type == lexer.EOFType {
+			return false, fmt.Errorf("expected keyword %q, found nothing", keyword)
+		}
+		if token.Type != lexer.IdentifierType || strings.ToUpper(token.Raw) != keyword {
+			return false, fmt.Errorf("expected keyword %q, found nothing", keyword)
+		}
+	}
+	return true, nil
+}
+
+func where(lex lexer.Lexer) (ast.Condition, error) {
+	if ok, err := ifKeywords(lex, "WHERE"); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, nil
+	}
+	return condition(lex)
+}
+
+func condition(lex lexer.Lexer) (ast.Condition, error) {
+	field, err := field(lex)
+	if err != nil {
+		return nil, err
+	}
+	result := ast.EqualCondition{LHS: field}
+	//if !lex.Next() {
+	//	return nil, fmt.Errorf("expected an attribute, found nothing")
+	//}
+	//token = lex.Token()
+	//if token.Type != lexer.IdentifierType {
+	//	return nil, fmt.Errorf("expected attribute name, found %q", token.Raw)
+	//}
+	//result.LHS = &ast.Attribute{Name: token.Raw}
+
+	if ok, err := ifToken(lex, lexer.EqualType); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, fmt.Errorf("expected =")
+	}
+	//if !lex.Next() {
+	//	return nil, fmt.Errorf("expected =, found nothing")
+	//}
+	//token = lex.Token()
+	//if token.Type != lexer.EqualType {
+	//	return nil, fmt.Errorf("expected =, found %q", token.Raw)
+	//}
 
 	if !lex.Next() {
 		return nil, fmt.Errorf("expected an attribute, found nothing")
 	}
-	token = lex.Token()
+	token := lex.Token()
 	switch token.Type {
 	case lexer.StringType:
 		result.RHS = &ast.Constant{
@@ -254,49 +394,48 @@ func condition(lex lexer.Lexer) (ast.Condition, error) {
 }
 
 func orderBy(lex lexer.Lexer) (*ast.OrderBy, error) {
-	if !lex.Next() {
+	if ok, err := ifKeywords(lex, "ORDER", "BY"); err != nil {
+		return nil, err
+	} else if !ok {
 		return nil, nil
-	}
-	token := lex.Token()
-	if token.Type == lexer.ErrorType {
-		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
-	}
-	if token.Type == lexer.EOFType {
-		return nil, nil
-	}
-	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "ORDER" {
-		lex.UnreadToken()
-		return nil, nil
-	}
-	if !lex.Next() {
-		return nil, fmt.Errorf("expected BY, found nothing")
-	}
-	token = lex.Token()
-	if token.Type == lexer.ErrorType {
-		return nil, fmt.Errorf("could not tokenize input: %v", token.Raw)
-	}
-	if token.Type == lexer.EOFType {
-		return nil, fmt.Errorf("expected BY, found nothing")
-	}
-	if token.Type != lexer.IdentifierType && strings.ToUpper(token.Raw) != "BY" {
-		return nil, fmt.Errorf("expected BY, found %q", token.Raw)
-
 	}
 
 	result := ast.OrderBy{}
-	if !lex.Next() {
-		return nil, fmt.Errorf("expected an attribute, found nothing")
+	oc, err := orderByClause(lex)
+	if err != nil {
+		return nil, err
 	}
-	token = lex.Token()
-	if token.Type != lexer.IdentifierType {
-		return nil, fmt.Errorf("expected attribute name, found %q", token.Raw)
+	result.Criteria = append(result.Criteria, oc)
+
+	for {
+		if ok, err := ifToken(lex, lexer.CommaType); err != nil {
+			return nil, err
+		} else if !ok {
+			break
+		}
+
+		oc, err := orderByClause(lex)
+		if err != nil {
+			return nil, err
+		}
+		result.Criteria = append(result.Criteria, oc)
 	}
-	oc := ast.OrderCriteria{
-		Attribute: &ast.Attribute{Name: token.Raw},
+
+	return &result, nil
+}
+
+func orderByClause(lex lexer.Lexer) (*ast.OrderCriteria, error) {
+	field, err := field(lex)
+	if err != nil {
+		return nil, err
+	}
+
+	oc := &ast.OrderCriteria{
+		Attribute: field,
 		SortOrder: ast.Asc,
 	}
 	if lex.Next() {
-		token = lex.Token()
+		token := lex.Token()
 		if token.Type == lexer.IdentifierType && strings.ToUpper(token.Raw) == "ASC" {
 			oc.SortOrder = ast.Asc
 		} else if token.Type == lexer.IdentifierType && strings.ToUpper(token.Raw) == "DESC" {
@@ -305,43 +444,5 @@ func orderBy(lex lexer.Lexer) (*ast.OrderBy, error) {
 			lex.UnreadToken()
 		}
 	}
-	result.Criteria = append(result.Criteria, &oc)
-
-	for {
-		if !lex.Next() {
-			break
-		}
-		token = lex.Token()
-		if token.Type == lexer.EOFType {
-			break
-		}
-		if token.Type != lexer.CommaType {
-			return nil, fmt.Errorf("expected ',', found %q", token.Raw)
-		}
-
-		if !lex.Next() {
-			return nil, fmt.Errorf("expected an attribute, found nothing")
-		}
-		token = lex.Token()
-		if token.Type != lexer.IdentifierType {
-			return nil, fmt.Errorf("expected attribute name, found %q", token.Raw)
-		}
-		oc := ast.OrderCriteria{
-			Attribute: &ast.Attribute{Name: token.Raw},
-			SortOrder: ast.Asc,
-		}
-		if lex.Next() {
-			token = lex.Token()
-			if token.Type == lexer.IdentifierType && strings.ToUpper(token.Raw) == "ASC" {
-				oc.SortOrder = ast.Asc
-			} else if token.Type == lexer.IdentifierType && strings.ToUpper(token.Raw) == "DESC" {
-				oc.SortOrder = ast.Desc
-			} else {
-				lex.UnreadToken()
-			}
-		}
-		result.Criteria = append(result.Criteria, &oc)
-	}
-
-	return &result, nil
+	return oc, nil
 }

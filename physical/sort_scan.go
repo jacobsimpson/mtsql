@@ -28,6 +28,10 @@ func (t *sortScan) Read() ([]string, error) {
 }
 
 func (t *sortScan) Close() {}
+func (t *sortScan) Reset() error {
+	t.next = 0
+	return nil
+}
 
 func (t *sortScan) PlanDescription() *PlanDescription {
 	return &PlanDescription{

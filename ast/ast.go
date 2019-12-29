@@ -7,10 +7,10 @@ type Profile struct {
 }
 
 type SFW struct {
-	SelList   *SelList
-	From      From
-	Condition Condition
-	OrderBy   *OrderBy
+	SelList *SelList
+	From    From
+	Where   Condition
+	OrderBy *OrderBy
 }
 
 type SelList struct {
@@ -23,10 +23,22 @@ type Attribute struct {
 	Alias     string
 }
 
-type From interface{}
+type From interface {
+	Tables() []*Relation
+}
 type Relation struct {
 	Name string
 }
+
+func (r *Relation) Tables() []*Relation { return []*Relation{r} }
+
+type InnerJoin struct {
+	Left  *Relation
+	Right *Relation
+	On    *EqualColumnCondition
+}
+
+func (r *InnerJoin) Tables() []*Relation { return []*Relation{r.Left, r.Right} }
 
 type Condition interface{}
 type AndCondition struct {
@@ -34,6 +46,10 @@ type AndCondition struct {
 	RHS Condition
 }
 type InCondition struct{}
+type EqualColumnCondition struct {
+	Left  *Attribute
+	Right *Attribute
+}
 type EqualCondition struct {
 	LHS *Attribute
 	RHS *Constant
