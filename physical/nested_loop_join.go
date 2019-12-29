@@ -65,7 +65,9 @@ func (t *nestedLoopJoin) PlanDescription() *PlanDescription {
 	}
 }
 
-func (t *nestedLoopJoin) Children() []RowReader { return []RowReader{} }
+func (t *nestedLoopJoin) Children() []RowReader {
+	return []RowReader{t.left, t.right}
+}
 
 func NewNestedLoopJoin(left, right RowReader) (RowReader, error) {
 	return &nestedLoopJoin{

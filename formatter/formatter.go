@@ -61,16 +61,26 @@ func (f *queryPlanFormatter) Print(w io.Writer) {
 
 func printPlanDescription(w io.Writer, rowReader physical.RowReader, indentation int) {
 	planDescription := rowReader.PlanDescription()
-	fmt.Fprintf(w, "%so %s (%s)\n",
-		strings.Repeat("| ", indentation),
-		planDescription.Name,
-		planDescription.Description)
-	children := rowReader.Children()
-	indentationIncrement := 0
-	if len(children) > 1 {
-		indentationIncrement = 1
+	if len(planDescription.Description) > 0 {
+		fmt.Fprintf(w, "%so %s (%s)\n",
+			strings.Repeat("| ", indentation),
+			planDescription.Name,
+			planDescription.Description)
+	} else {
+		fmt.Fprintf(w, "%so %s\n",
+			strings.Repeat("| ", indentation),
+			planDescription.Name)
 	}
-	for _, rr := range children {
+	children := rowReader.Children()
+
+	// If there are multiple children, they need to be indented so there is
+	// room for the line to continue down. The last child doesn't have to be
+	// indented.
+	indentationIncrement := 1
+	for i, rr := range children {
+		if i == len(children)-1 {
+			indentationIncrement = 0
+		}
 		fmt.Fprintf(w, "%s|%s\n", strings.Repeat("| ", indentation), strings.Repeat("\\", indentationIncrement))
 		printPlanDescription(w, rr, indentation+indentationIncrement)
 	}
