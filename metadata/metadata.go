@@ -24,7 +24,7 @@ func (r *Relation) ColumnsMap() map[string]*Column {
 type ColumnType string
 
 const (
-	AnyType ColumnType = "any"
+	StringType ColumnType = "string"
 )
 
 type Column struct {

@@ -121,7 +121,7 @@ func loadColumns(name, file string) ([]*metadata.Column, error) {
 
 	var columns []*metadata.Column
 	for _, cn := range columnNames {
-		columns = append(columns, &metadata.Column{Name: cn, Type: metadata.AnyType})
+		columns = append(columns, &metadata.Column{Name: cn, Type: metadata.StringType})
 	}
 	return columns, nil
 }
