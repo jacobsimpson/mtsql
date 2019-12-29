@@ -49,7 +49,18 @@ func NewQueryPlan(q ast.Query) (RowReader, error) {
 		if err != nil {
 			return nil, err
 		}
-		// , ij.On
+		rowReader, err = NewColumnFilter(rowReader,
+			&metadata.Column{
+				Qualifier: ij.On.Left.Qualifier,
+				Name:      ij.On.Left.Name,
+			},
+			&metadata.Column{
+				Qualifier: ij.On.Right.Qualifier,
+				Name:      ij.On.Right.Name,
+			})
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		return nil, fmt.Errorf("expected a relation in the FROM clause, but got something else")
 	}
