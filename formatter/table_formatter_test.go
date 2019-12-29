@@ -25,9 +25,16 @@ func TestTableFormatter(t *testing.T) {
 	formatter := NewTableFormatter(rowReader)
 	var builder strings.Builder
 	formatter.Print(&builder)
+
+	// The output contains a separater between the column names and rows that
+	// varies depending on terminal width, so exclude that from the testing
+	// result.
+	result := strings.Split(builder.String(), "\n")
+	columnNames := result[0]
+	rows := result[2:]
+	assert.Equal("tb1.col1 tb1.col2 tb1.col3 ", columnNames)
 	assert.Equal(
-		strings.Join([]string{
-			"tb1.col1 tb1.col2 tb1.col3 ",
+		[]string{
 			"row1-col1 row1-col2 row1-col3 ",
 			"row2-col1 row2-col2 row2-col3 ",
 			"",
@@ -35,6 +42,6 @@ func TestTableFormatter(t *testing.T) {
 			"EOF",
 			"",
 			"",
-		}, "\n"),
-		builder.String())
+		},
+		rows)
 }

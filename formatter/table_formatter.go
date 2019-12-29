@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/jacobsimpson/mtsql/physical"
 	"golang.org/x/crypto/ssh/terminal"
@@ -62,7 +63,9 @@ func (f *tableFormatter) Print(w io.Writer) {
 
 		columnFormats = append(columnFormats, cf)
 	}
-	fmt.Fprintf(w, "\n")
+
+	fmt.Fprintf(w, "\n%s\n", strings.Repeat("-", f.width-1))
+
 	for {
 		row, err := f.rowReader.Read()
 		if err != nil {
