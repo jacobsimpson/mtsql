@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/wsxiaoys/terminal/color"
+
 	"github.com/jacobsimpson/mtsql/physical"
 )
 
@@ -27,12 +29,12 @@ func (f *queryPlanFormatter) Print(w io.Writer) {
 func printPlanDescription(w io.Writer, rowReader physical.RowReader, indentation int) {
 	planDescription := rowReader.PlanDescription()
 	if len(planDescription.Description) > 0 {
-		fmt.Fprintf(w, "%so %s (%s)\n",
+		color.Fprintf(w, "%s@{cK}o@{|} @{bK}%s@{|} (@{yK}%s@{|})\n",
 			strings.Repeat("| ", indentation),
 			planDescription.Name,
 			planDescription.Description)
 	} else {
-		fmt.Fprintf(w, "%so %s\n",
+		color.Fprintf(w, "%s@{cK}o@{|} @{bK}%s@{|}\n",
 			strings.Repeat("| ", indentation),
 			planDescription.Name)
 	}
