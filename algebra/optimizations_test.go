@@ -95,12 +95,12 @@ func TestCanPushDownSelection(t *testing.T) {
 		selection *Selection
 		expected  bool
 	}{
-		//{
-		//	name:      "push down over projection",
-		//	operation: &Projection{},
-		//	selection: &Selection{},
-		//	expected:  true,
-		//},
+		{
+			name:      "push down over projection",
+			operation: &Projection{},
+			selection: &Selection{},
+			expected:  true,
+		},
 		{
 			name: "push down over missing columns",
 			operation: &Projection{
