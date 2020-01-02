@@ -1,4 +1,4 @@
-package algebra
+package logical
 
 import (
 	"testing"

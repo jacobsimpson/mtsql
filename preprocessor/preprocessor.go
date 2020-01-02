@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jacobsimpson/mtsql/algebra"
 	"github.com/jacobsimpson/mtsql/ast"
+	"github.com/jacobsimpson/mtsql/logical"
 	md "github.com/jacobsimpson/mtsql/metadata"
 )
 
-func Convert(q ast.Query, tables map[string]*md.Relation) (algebra.Operation, error) {
+func Convert(q ast.Query, tables map[string]*md.Relation) (logical.Operation, error) {
 	var sfw *ast.SFW
 	if p, ok := q.(*ast.Profile); ok {
 		sfw = p.SFW
@@ -26,7 +26,7 @@ func Convert(q ast.Query, tables map[string]*md.Relation) (algebra.Operation, er
 	}
 
 	if sfw.Where != nil {
-		result = &algebra.Selection{
+		result = &logical.Selection{
 			Child: result,
 		}
 	}
@@ -47,7 +47,7 @@ func Convert(q ast.Query, tables map[string]*md.Relation) (algebra.Operation, er
 			columns = append(columns, matches[0])
 		}
 
-		result = algebra.NewProjection(
+		result = logical.NewProjection(
 			result,
 			columns)
 	}
@@ -55,7 +55,7 @@ func Convert(q ast.Query, tables map[string]*md.Relation) (algebra.Operation, er
 	return result, nil
 }
 
-func convertFrom(from ast.From, tables map[string]*md.Relation) (algebra.Operation, error) {
+func convertFrom(from ast.From, tables map[string]*md.Relation) (logical.Operation, error) {
 	if rel, ok := from.(*ast.Relation); ok {
 		return convertRelation(rel, tables)
 	}
@@ -68,8 +68,8 @@ func convertFrom(from ast.From, tables map[string]*md.Relation) (algebra.Operati
 		if err != nil {
 			return nil, err
 		}
-		selection := &algebra.Selection{
-			Child: &algebra.Product{
+		selection := &logical.Selection{
+			Child: &logical.Product{
 				LHS: left,
 				RHS: right,
 			},
@@ -82,7 +82,7 @@ func convertFrom(from ast.From, tables map[string]*md.Relation) (algebra.Operati
 	return nil, fmt.Errorf("unable to convert from relationship")
 }
 
-func convertRelation(relation *ast.Relation, tables map[string]*md.Relation) (*algebra.Source, error) {
+func convertRelation(relation *ast.Relation, tables map[string]*md.Relation) (*logical.Source, error) {
 	t := tables[relation.Name]
 	if t == nil {
 		t := &md.Relation{
@@ -98,7 +98,7 @@ func convertRelation(relation *ast.Relation, tables map[string]*md.Relation) (*a
 
 		tables[t.Name] = t
 	}
-	return algebra.NewSource(t.Name, t.Columns), nil
+	return logical.NewSource(t.Name, t.Columns), nil
 }
 
 func loadColumns(tableName, file string) ([]*md.Column, error) {

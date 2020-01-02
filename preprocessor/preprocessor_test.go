@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/jacobsimpson/mtsql/algebra"
 	"github.com/jacobsimpson/mtsql/ast"
+	"github.com/jacobsimpson/mtsql/logical"
 	md "github.com/jacobsimpson/mtsql/metadata"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +15,7 @@ func TestConvert(t *testing.T) {
 		name     string
 		query    ast.Query
 		tables   map[string]*md.Relation
-		expected algebra.Operation
+		expected logical.Operation
 		err      error
 	}{
 		{
@@ -31,7 +31,7 @@ func TestConvert(t *testing.T) {
 			tables: map[string]*md.Relation{
 				"this": &md.Relation{Name: "this"},
 			},
-			expected: &algebra.Source{Name: "this"},
+			expected: &logical.Source{Name: "this"},
 		},
 		{
 			name: "only select clause",
@@ -53,8 +53,8 @@ func TestConvert(t *testing.T) {
 					},
 				},
 			},
-			expected: algebra.NewProjection(
-				algebra.NewSource("this", []*md.Column{
+			expected: logical.NewProjection(
+				logical.NewSource("this", []*md.Column{
 					{Name: "name", Type: md.StringType},
 				}),
 				[]*md.Column{
@@ -98,14 +98,14 @@ func TestConvert(t *testing.T) {
 					},
 				},
 			},
-			expected: algebra.NewProjection(
-				algebra.NewSelection(
-					&algebra.Product{
-						LHS: algebra.NewSource("this", []*md.Column{
+			expected: logical.NewProjection(
+				logical.NewSelection(
+					&logical.Product{
+						LHS: logical.NewSource("this", []*md.Column{
 							{Name: "id", Type: md.StringType},
 							{Name: "name", Type: md.StringType},
 						}),
-						RHS: algebra.NewSource("that", []*md.Column{
+						RHS: logical.NewSource("that", []*md.Column{
 							{Name: "id", Type: md.StringType},
 						}),
 					},
