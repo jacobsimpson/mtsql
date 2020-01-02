@@ -11,6 +11,7 @@ type Operation interface {
 	Clone(...Operation) Operation
 	Provides() []*md.Column
 	Requires() []*md.Column
+	String() string
 }
 
 type Difference struct {
@@ -38,9 +39,23 @@ type Selection struct {
 	requires []*md.Column
 }
 
+func NewSelection(child Operation, requires []*md.Column) *Selection {
+	return &Selection{
+		Child:    child,
+		requires: requires,
+	}
+}
+
 type Projection struct {
 	Child   Operation
 	columns []*md.Column
+}
+
+func NewProjection(child Operation, columns []*md.Column) *Projection {
+	return &Projection{
+		Child:   child,
+		columns: columns,
+	}
 }
 
 type Distinct struct {
@@ -52,6 +67,7 @@ type Sort struct {
 }
 
 type Source struct {
+	Name     string
 	provides []*md.Column
 }
 
@@ -126,7 +142,10 @@ func (o *Selection) Clone(children ...Operation) Operation {
 	if len(children) != 1 {
 		panic("wrong number of children")
 	}
-	return &Selection{Child: children[0]}
+	return &Selection{
+		Child:    children[0],
+		requires: o.requires,
+	}
 }
 
 func (o *Selection) String() string {
@@ -144,7 +163,10 @@ func (o *Projection) Clone(children ...Operation) Operation {
 	if len(children) != 1 {
 		panic("wrong number of children")
 	}
-	return &Projection{Child: children[0]}
+	return &Projection{
+		Child:   children[0],
+		columns: o.columns,
+	}
 }
 
 func (o *Projection) String() string {
@@ -169,7 +191,7 @@ func (o *Product) Clone(children ...Operation) Operation {
 }
 
 func (o *Product) String() string {
-	return fmt.Sprintf("Product{}")
+	return fmt.Sprintf("Product{LHS: %s, RHS: %s}", o.LHS, o.RHS)
 }
 
 func (o *Product) Provides() []*md.Column { return append(o.LHS.Provides(), o.RHS.Provides()...) }
@@ -211,6 +233,13 @@ func (o *Sort) String() string {
 func (o *Sort) Provides() []*md.Column { return o.Child.Provides() }
 func (o *Sort) Requires() []*md.Column { return []*md.Column{} }
 
+func NewSource(name string, provides []*md.Column) *Source {
+	return &Source{
+		Name:     name,
+		provides: provides,
+	}
+}
+
 func (o *Source) Children() []Operation {
 	return []Operation{}
 }
@@ -219,11 +248,13 @@ func (o *Source) Clone(children ...Operation) Operation {
 	if len(children) != 0 {
 		panic("wrong number of children")
 	}
-	return &Source{}
+	return &Source{
+		provides: o.provides,
+	}
 }
 
 func (o *Source) String() string {
-	return fmt.Sprintf("Source{}")
+	return fmt.Sprintf("Source{Name: %q, provides: %s}", o.Name, o.provides)
 }
 
 func (o *Source) Provides() []*md.Column { return o.provides }

@@ -34,7 +34,7 @@ func run() error {
 		return err
 	}
 
-	if err := preprocessor.Validate(q, map[string]*metadata.Relation{}); err != nil {
+	if _, err := preprocessor.Convert(q, map[string]*metadata.Relation{}); err != nil {
 		return err
 	}
 

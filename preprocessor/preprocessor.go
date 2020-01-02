@@ -5,103 +5,103 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jacobsimpson/mtsql/algebra"
 	"github.com/jacobsimpson/mtsql/ast"
-	"github.com/jacobsimpson/mtsql/metadata"
+	md "github.com/jacobsimpson/mtsql/metadata"
 )
 
-func Validate(q ast.Query, tables map[string]*metadata.Relation) error {
+func Convert(q ast.Query, tables map[string]*md.Relation) (algebra.Operation, error) {
 	var sfw *ast.SFW
 	if p, ok := q.(*ast.Profile); ok {
 		sfw = p.SFW
 	} else if s, ok := q.(*ast.SFW); ok {
 		sfw = s
 	} else {
-		return fmt.Errorf("expected a select query, but got something else")
+		return nil, fmt.Errorf("expected a select query, but got something else")
 	}
 
-	tableMetadata, err := validateFrom(sfw.From, tables)
+	result, err := convertFrom(sfw.From, tables)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	columnsMap := map[string]*metadata.Column{}
-	tablesMap := map[string]*metadata.Relation{}
-	for _, tmd := range tableMetadata {
-		tablesMap[tmd.Name] = tmd
-		for k, v := range tmd.ColumnsMap() {
-			columnsMap[k] = v
-		}
-	}
 	if sfw.Where != nil {
-		eq, ok := sfw.Where.(*ast.EqualCondition)
-		if !ok {
-			return fmt.Errorf("only = conditions are currently supported")
-		}
-		if columnsMap[eq.LHS.Name] == nil {
-			return fmt.Errorf("no column %q in query", eq.LHS.Name)
+		result = &algebra.Selection{
+			Child: result,
 		}
 	}
 
-	for _, a := range sfw.SelList.Attributes {
-		if columnsMap[a.Name] == nil && a.Name != "*" {
-			return fmt.Errorf("no column %q in query", a.Name)
-		}
-	}
+	if sfw.SelList != nil {
+		mapper := newMapper(result.Provides())
 
-	// Expand any '*' references to the appropriate column list.
-	r := []*ast.Attribute{}
-	for _, a := range sfw.SelList.Attributes {
-		if a.Name == "*" {
-			if a.Qualifier == "" {
-				for _, tmd := range tableMetadata {
-					for _, c := range tmd.Columns {
-						r = append(r, &ast.Attribute{Name: c.Name})
-					}
-				}
-				continue
-			} else {
-				tmd := tablesMap[a.Qualifier]
-				if tmd == nil {
-					return fmt.Errorf("table %q isn't in the query", a.Qualifier)
-				}
-				for _, c := range tmd.Columns {
-					r = append(r, &ast.Attribute{Name: c.Name})
-				}
+		columns := []*md.Column{}
+		for _, a := range sfw.SelList.Attributes {
+			matches := mapper.findMatches(a)
+			if len(matches) == 0 {
+				return nil, fmt.Errorf("no columns for %s", a)
 			}
+			if len(matches) > 1 {
+				return nil, fmt.Errorf("multiple column matches %+v", matches)
+			}
+			fmt.Printf("the matching column = %+v\n", matches[0])
+			columns = append(columns, matches[0])
 		}
-		r = append(r, a)
+
+		result = algebra.NewProjection(
+			result,
+			columns)
 	}
-	sfw.SelList.Attributes = r
 
-	return nil
-}
-
-func validateFrom(from ast.From, tables map[string]*metadata.Relation) ([]*metadata.Relation, error) {
-	result := []*metadata.Relation{}
-	for _, rel := range from.Tables() {
-		if t := tables[rel.Name]; t != nil {
-			result = append(result, t)
-			continue
-		}
-
-		md := &metadata.Relation{
-			Name:   rel.Name,
-			Type:   metadata.CsvType,
-			Source: rel.Name + ".csv",
-		}
-		columns, err := loadColumns(md.Name, md.Source)
-		if err != nil {
-			return nil, err
-		}
-		md.Columns = columns
-
-		tables[rel.Name] = md
-		result = append(result, md)
-	}
 	return result, nil
 }
 
-func loadColumns(tableName, file string) ([]*metadata.Column, error) {
+func convertFrom(from ast.From, tables map[string]*md.Relation) (algebra.Operation, error) {
+	if rel, ok := from.(*ast.Relation); ok {
+		return convertRelation(rel, tables)
+	}
+	if ij, ok := from.(*ast.InnerJoin); ok {
+		left, err := convertRelation(ij.Left, tables)
+		if err != nil {
+			return nil, err
+		}
+		right, err := convertRelation(ij.Right, tables)
+		if err != nil {
+			return nil, err
+		}
+		selection := &algebra.Selection{
+			Child: &algebra.Product{
+				LHS: left,
+				RHS: right,
+			},
+			//requires: []*md.Column{
+			//	&md.Column{},
+			//},
+		}
+		return selection, nil
+	}
+	return nil, fmt.Errorf("unable to convert from relationship")
+}
+
+func convertRelation(relation *ast.Relation, tables map[string]*md.Relation) (*algebra.Source, error) {
+	t := tables[relation.Name]
+	if t == nil {
+		t := &md.Relation{
+			Name:   relation.Name,
+			Type:   md.CsvType,
+			Source: relation.Name + ".csv",
+		}
+		columns, err := loadColumns(t.Name, t.Source)
+		if err != nil {
+			return nil, err
+		}
+		t.Columns = columns
+
+		tables[t.Name] = t
+	}
+	return algebra.NewSource(t.Name, t.Columns), nil
+}
+
+func loadColumns(tableName, file string) ([]*md.Column, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, fmt.Errorf("table %q could not be located at %q", tableName, file)
@@ -114,12 +114,12 @@ func loadColumns(tableName, file string) ([]*metadata.Column, error) {
 		return nil, fmt.Errorf("unable to read columns for table %q at %q", tableName, file)
 	}
 
-	var columns []*metadata.Column
+	var columns []*md.Column
 	for _, cn := range columnNames {
-		columns = append(columns, &metadata.Column{
+		columns = append(columns, &md.Column{
 			Qualifier: tableName,
 			Name:      cn,
-			Type:      metadata.StringType,
+			Type:      md.StringType,
 		})
 	}
 	return columns, nil

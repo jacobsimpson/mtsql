@@ -6,6 +6,10 @@ import (
 	md "github.com/jacobsimpson/mtsql/metadata"
 )
 
+func Optimize(o Operation) Operation {
+	return PushDownSelection(o)
+}
+
 func PushDownSelection(o Operation) Operation {
 	if s, ok := o.(*Selection); ok {
 		return helpPushDownSelection(s.Child, s)
