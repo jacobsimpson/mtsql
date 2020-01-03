@@ -17,12 +17,33 @@ type tableScan struct {
 	firstRow  int64
 }
 
+func NewTableScan(tableName, fileName string) (RowReader, error) {
+	ts := &tableScan{
+		tableName: tableName,
+		fileName:  fileName,
+	}
+	if err := ts.init(); err != nil {
+		return nil, err
+	}
+	return ts, nil
+}
+
 func (t *tableScan) Columns() []*metadata.Column {
 	return t.columns
 }
 
 func (t *tableScan) Read() ([]string, error) {
-	return t.reader.Read()
+	for {
+		r, err := t.reader.Read()
+		if err != nil {
+			return nil, err
+		}
+		// After the CSV reader has read all the lines in a file, it will
+		// return an extra line, a 0 length array.
+		if len(r) != 0 {
+			return r, err
+		}
+	}
 }
 
 func (t *tableScan) Close() {
@@ -52,7 +73,9 @@ func (t *tableScan) init() error {
 	t.firstRow = firstRow
 
 	t.reader = reader
+	fmt.Println("Reading columns")
 	for _, c := range columns {
+		fmt.Printf("reading column %q, %q\n", t.tableName, c)
 		t.columns = append(t.columns, &metadata.Column{
 			Qualifier: t.tableName,
 			Name:      c,
@@ -69,14 +92,3 @@ func (t *tableScan) PlanDescription() *PlanDescription {
 }
 
 func (t *tableScan) Children() []RowReader { return []RowReader{} }
-
-func NewTableScan(tableName, fileName string) (RowReader, error) {
-	ts := &tableScan{
-		tableName: tableName,
-		fileName:  fileName,
-	}
-	if err := ts.init(); err != nil {
-		return nil, err
-	}
-	return ts, nil
-}

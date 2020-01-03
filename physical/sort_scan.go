@@ -16,6 +16,40 @@ type sortScan struct {
 	next          int
 }
 
+func NewSortScan(rowReader RowReader, columns []SortScanCriteria) (RowReader, error) {
+	columnMap := map[metadata.Column]int{}
+	for i, c := range rowReader.Columns() {
+		columnMap[*c] = i
+	}
+	cols := []int{}
+	sortOrder := []SortOrder{}
+	for _, c := range columns {
+		cols = append(cols, columnMap[*c.Column])
+		sortOrder = append(sortOrder, c.SortOrder)
+	}
+
+	rows := [][]string{}
+	for {
+		row, err := rowReader.Read()
+		if err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+			break
+		}
+		if row == nil {
+			break
+		}
+		rows = append(rows, row)
+	}
+	sort.Sort(&columnSorter{rows: rows, columns: cols, sortOrder: sortOrder})
+	return &sortScan{
+		rowReader:     rowReader,
+		rows:          rows,
+		columnIndexes: cols,
+	}, nil
+}
+
 func (t *sortScan) Columns() []*metadata.Column {
 	return t.rowReader.Columns()
 }
@@ -82,38 +116,4 @@ func (s *columnSorter) Less(i, j int) bool {
 		}
 	}
 	return false
-}
-
-func NewSortScan(rowReader RowReader, columns []SortScanCriteria) (RowReader, error) {
-	columnMap := map[metadata.Column]int{}
-	for i, c := range rowReader.Columns() {
-		columnMap[*c] = i
-	}
-	cols := []int{}
-	sortOrder := []SortOrder{}
-	for _, c := range columns {
-		cols = append(cols, columnMap[*c.Column])
-		sortOrder = append(sortOrder, c.SortOrder)
-	}
-
-	rows := [][]string{}
-	for {
-		row, err := rowReader.Read()
-		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
-			break
-		}
-		if row == nil {
-			break
-		}
-		rows = append(rows, row)
-	}
-	sort.Sort(&columnSorter{rows: rows, columns: cols, sortOrder: sortOrder})
-	return &sortScan{
-		rowReader:     rowReader,
-		rows:          rows,
-		columnIndexes: cols,
-	}, nil
 }

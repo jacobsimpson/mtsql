@@ -32,18 +32,14 @@ func newMapper(columns []*md.Column) *mapper {
 }
 
 func (m *mapper) findMatches(a *ast.Attribute) []*md.Column {
-	fmt.Println("1")
 	if a.Alias != "" {
-		fmt.Println("2")
 		r := m.aliases[a.Alias]
 		if r == nil {
 			return []*md.Column{}
 		}
 		return r
 	}
-	fmt.Println("3")
 	if a.Qualifier != "" {
-		fmt.Println("4")
 		qualifiedName := fmt.Sprintf("%s.%s", a.Qualifier, a.Name)
 		r := m.qualified[qualifiedName]
 		if r == nil {
@@ -51,7 +47,6 @@ func (m *mapper) findMatches(a *ast.Attribute) []*md.Column {
 		}
 		return r
 	}
-	fmt.Println("5")
 	r := m.names[a.Name]
 	if r == nil {
 		return []*md.Column{}

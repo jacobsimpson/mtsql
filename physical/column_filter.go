@@ -14,6 +14,24 @@ type columnFilter struct {
 	rightIndex int
 }
 
+func NewColumnFilter(rowReader RowReader, left, right *metadata.Column) (RowReader, error) {
+	lIdx, err := findColumn(left, rowReader.Columns())
+	if err != nil {
+		return nil, err
+	}
+	rIdx, err := findColumn(right, rowReader.Columns())
+	if err != nil {
+		return nil, err
+	}
+	return &columnFilter{
+		rowReader:  rowReader,
+		left:       left,
+		leftIndex:  lIdx,
+		right:      right,
+		rightIndex: rIdx,
+	}, nil
+}
+
 func (t *columnFilter) Columns() []*metadata.Column {
 	return t.rowReader.Columns()
 }
@@ -53,22 +71,4 @@ func findColumn(target *metadata.Column, columns []*metadata.Column) (int, error
 		}
 	}
 	return 0, fmt.Errorf("column %q does not exist in relation", target.QualifiedName())
-}
-
-func NewColumnFilter(rowReader RowReader, left, right *metadata.Column) (RowReader, error) {
-	lIdx, err := findColumn(left, rowReader.Columns())
-	if err != nil {
-		return nil, err
-	}
-	rIdx, err := findColumn(right, rowReader.Columns())
-	if err != nil {
-		return nil, err
-	}
-	return &columnFilter{
-		rowReader:  rowReader,
-		left:       left,
-		leftIndex:  lIdx,
-		right:      right,
-		rightIndex: rIdx,
-	}, nil
 }

@@ -29,25 +29,27 @@ func run() error {
 	}
 
 	query := os.Args[1]
-	q, err := parser.Parse(lexer.NewFilterWhitespace(strings.NewReader(query)))
+	queryAst, err := parser.Parse(lexer.NewFilterWhitespace(strings.NewReader(query)))
 	if err != nil {
 		return err
 	}
 
-	if _, err := preprocessor.Convert(q, map[string]*metadata.Relation{}); err != nil {
-		return err
-	}
-
-	qp, err := physical.NewQueryPlan(q)
+	tables := map[string]*metadata.Relation{}
+	queryLogical, err := preprocessor.Convert(queryAst, tables)
 	if err != nil {
 		return err
 	}
-	if _, ok := q.(*ast.Profile); ok {
+
+	queryPhysical, err := physical.Convert(queryLogical, tables)
+	if err != nil {
+		return err
+	}
+	if _, ok := queryAst.(*ast.Profile); ok {
 		fmt.Println("Showing the query plan...")
-		f := formatter.NewQueryPlanFormatter(qp)
+		f := formatter.NewQueryPlanFormatter(queryPhysical)
 		f.Print(os.Stdout)
 	} else {
-		f := formatter.NewTableFormatter(qp)
+		f := formatter.NewTableFormatter(queryPhysical)
 		f.Print(os.Stdout)
 	}
 	return nil

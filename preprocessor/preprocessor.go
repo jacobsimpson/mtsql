@@ -85,7 +85,7 @@ func convertFrom(from ast.From, tables map[string]*md.Relation) (logical.Operati
 func convertRelation(relation *ast.Relation, tables map[string]*md.Relation) (*logical.Source, error) {
 	t := tables[relation.Name]
 	if t == nil {
-		t := &md.Relation{
+		t = &md.Relation{
 			Name:   relation.Name,
 			Type:   md.CsvType,
 			Source: relation.Name + ".csv",
