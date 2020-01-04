@@ -73,9 +73,7 @@ func (t *tableScan) init() error {
 	t.firstRow = firstRow
 
 	t.reader = reader
-	fmt.Println("Reading columns")
 	for _, c := range columns {
-		fmt.Printf("reading column %q, %q\n", t.tableName, c)
 		t.columns = append(t.columns, &metadata.Column{
 			Qualifier: t.tableName,
 			Name:      c,

@@ -42,10 +42,10 @@ func TestPushDown(t *testing.T) {
 					columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
 					Child: &Union{
 						LHS: &Source{
-							provides: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
+							Relation: &md.Relation{Columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}}},
 						},
 						RHS: &Source{
-							provides: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
+							Relation: &md.Relation{Columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}}},
 						},
 					},
 				},
@@ -56,13 +56,13 @@ func TestPushDown(t *testing.T) {
 					LHS: &Selection{
 						requires: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
 						Child: &Source{
-							provides: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
+							Relation: &md.Relation{Columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}}},
 						},
 					},
 					RHS: &Selection{
 						requires: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
 						Child: &Source{
-							provides: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
+							Relation: &md.Relation{Columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}}},
 						},
 					},
 				},
@@ -131,10 +131,10 @@ func TestCanPushDownSelection(t *testing.T) {
 				columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
 				Child: &Union{
 					LHS: &Source{
-						provides: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
+						Relation: &md.Relation{Columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}}},
 					},
 					RHS: &Source{
-						provides: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
+						Relation: &md.Relation{Columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}}},
 					},
 				},
 			},
@@ -144,10 +144,10 @@ func TestCanPushDownSelection(t *testing.T) {
 					columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
 					Child: &Union{
 						LHS: &Source{
-							provides: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
+							Relation: &md.Relation{Columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}}},
 						},
 						RHS: &Source{
-							provides: []*md.Column{{Qualifier: "tab1", Name: "name1"}},
+							Relation: &md.Relation{Columns: []*md.Column{{Qualifier: "tab1", Name: "name1"}}},
 						},
 					},
 				},

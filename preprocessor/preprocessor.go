@@ -36,15 +36,11 @@ func Convert(q ast.Query, tables map[string]*md.Relation) (logical.Operation, er
 
 		columns := []*md.Column{}
 		for _, a := range sfw.SelList.Attributes {
-			matches := mapper.findMatches(a)
-			if len(matches) == 0 {
-				return nil, fmt.Errorf("no columns for %s", a)
+			matches, err := mapper.findMatches(a)
+			if err != nil {
+				return nil, err
 			}
-			if len(matches) > 1 {
-				return nil, fmt.Errorf("multiple column matches %+v", matches)
-			}
-			fmt.Printf("the matching column = %+v\n", matches[0])
-			columns = append(columns, matches[0])
+			columns = append(columns, matches...)
 		}
 
 		result = logical.NewProjection(
@@ -98,7 +94,7 @@ func convertRelation(relation *ast.Relation, tables map[string]*md.Relation) (*l
 
 		tables[t.Name] = t
 	}
-	return logical.NewSource(t.Name, t.Columns), nil
+	return &logical.Source{t.Name, t}, nil
 }
 
 func loadColumns(tableName, file string) ([]*md.Column, error) {

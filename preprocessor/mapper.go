@@ -31,25 +31,41 @@ func newMapper(columns []*md.Column) *mapper {
 	return result
 }
 
-func (m *mapper) findMatches(a *ast.Attribute) []*md.Column {
+func (m *mapper) findMatches(a *ast.Attribute) ([]*md.Column, error) {
 	if a.Alias != "" {
 		r := m.aliases[a.Alias]
 		if r == nil {
-			return []*md.Column{}
+			return nil, fmt.Errorf("no matching alias for %q", a.Alias)
 		}
-		return r
+		if len(r) > 1 {
+			return nil, fmt.Errorf("too many matching aliases %q", a.Alias)
+		}
+		return r, nil
 	}
 	if a.Qualifier != "" {
 		qualifiedName := fmt.Sprintf("%s.%s", a.Qualifier, a.Name)
 		r := m.qualified[qualifiedName]
 		if r == nil {
-			return []*md.Column{}
+			return nil, fmt.Errorf("no matching qualified name %q", qualifiedName)
 		}
-		return r
+		if len(r) > 1 {
+			return nil, fmt.Errorf("too many matching qualified names %q", qualifiedName)
+		}
+		return r, nil
+	}
+	if a.Name == "*" {
+		r := []*md.Column{}
+		for _, n := range m.names {
+			r = append(r, n...)
+		}
+		return r, nil
 	}
 	r := m.names[a.Name]
 	if r == nil {
-		return []*md.Column{}
+		return nil, fmt.Errorf("no matching name %q", a.Name)
 	}
-	return r
+	if len(r) > 1 {
+		return nil, fmt.Errorf("too many matching names %q", a.Name)
+	}
+	return r, nil
 }

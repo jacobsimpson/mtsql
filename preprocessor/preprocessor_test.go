@@ -31,7 +31,7 @@ func TestConvert(t *testing.T) {
 			tables: map[string]*md.Relation{
 				"this": &md.Relation{Name: "this"},
 			},
-			expected: &logical.Source{Name: "this"},
+			expected: &logical.Source{Name: "this", Relation: &md.Relation{Name: "this"}},
 		},
 		{
 			name: "only select clause",
@@ -54,12 +54,15 @@ func TestConvert(t *testing.T) {
 				},
 			},
 			expected: logical.NewProjection(
-				logical.NewSource("this", []*md.Column{
-					{Name: "name", Type: md.StringType},
-				}),
-				[]*md.Column{
-					{Name: "name", Type: md.StringType},
-				},
+				&logical.Source{
+					Name: "this",
+					Relation: &md.Relation{
+						Name:    "this",
+						Type:    md.CsvType,
+						Source:  "this",
+						Columns: []*md.Column{{Name: "name", Type: md.StringType}},
+					}},
+				[]*md.Column{{Name: "name", Type: md.StringType}},
 			),
 		},
 		{
@@ -101,13 +104,21 @@ func TestConvert(t *testing.T) {
 			expected: logical.NewProjection(
 				logical.NewSelection(
 					&logical.Product{
-						LHS: logical.NewSource("this", []*md.Column{
-							{Name: "id", Type: md.StringType},
-							{Name: "name", Type: md.StringType},
-						}),
-						RHS: logical.NewSource("that", []*md.Column{
-							{Name: "id", Type: md.StringType},
-						}),
+						LHS: &logical.Source{"this", &md.Relation{
+							Name:   "this",
+							Type:   md.CsvType,
+							Source: "this",
+							Columns: []*md.Column{
+								{Name: "id", Type: md.StringType},
+								{Name: "name", Type: md.StringType},
+							}}},
+						RHS: &logical.Source{"that", &md.Relation{
+							Name:   "that",
+							Type:   md.CsvType,
+							Source: "that",
+							Columns: []*md.Column{
+								{Name: "id", Type: md.StringType},
+							}}},
 					},
 					nil,
 				),

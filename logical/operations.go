@@ -68,7 +68,7 @@ type Sort struct {
 
 type Source struct {
 	Name     string
-	provides []*md.Column
+	Relation *md.Relation
 }
 
 func (o *Union) Children() []Operation {
@@ -233,13 +233,6 @@ func (o *Sort) String() string {
 func (o *Sort) Provides() []*md.Column { return o.Child.Provides() }
 func (o *Sort) Requires() []*md.Column { return []*md.Column{} }
 
-func NewSource(name string, provides []*md.Column) *Source {
-	return &Source{
-		Name:     name,
-		provides: provides,
-	}
-}
-
 func (o *Source) Children() []Operation {
 	return []Operation{}
 }
@@ -249,13 +242,19 @@ func (o *Source) Clone(children ...Operation) Operation {
 		panic("wrong number of children")
 	}
 	return &Source{
-		provides: o.provides,
+		Name:     o.Name,
+		Relation: o.Relation,
 	}
 }
 
 func (o *Source) String() string {
-	return fmt.Sprintf("Source{Name: %q, provides: %s}", o.Name, o.provides)
+	return fmt.Sprintf("Source{Name: %q, relation: %s}", o.Name, o.Relation)
 }
 
-func (o *Source) Provides() []*md.Column { return o.provides }
+func (o *Source) Provides() []*md.Column {
+	if o.Relation == nil {
+		return []*md.Column{}
+	}
+	return o.Relation.Columns
+}
 func (o *Source) Requires() []*md.Column { return []*md.Column{} }

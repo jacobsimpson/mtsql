@@ -23,6 +23,10 @@ func (r *Relation) ColumnsMap() map[string]*Column {
 	return columnsMap
 }
 
+func (r *Relation) String() string {
+	return fmt.Sprintf("Relation{Name: %s, Type: %s, Source: %s, Columns: ...}", r.Name, r.Type, r.Source)
+}
+
 type ColumnType string
 
 const (
